@@ -1,0 +1,198 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
+
+@st.cache_data
+def carregar_municipios():
+    df = pd.read_csv("F.K03200$Z.D50307MUNIC.csv", sep=";", header=None, dtype=str)
+    df.columns = ["CODIGO", "DESCRICAO"]
+    df["DESCRICAO"] = df["DESCRICAO"].str.title()
+    cod_para_nome = dict(zip(df["CODIGO"], df["DESCRICAO"]))
+    nome_para_cod = {v: k for k, v in cod_para_nome.items()}
+    return cod_para_nome, nome_para_cod
+
+@st.cache_data
+def carregar_cnaes_filtrados():
+    cnaes_interesse = [
+        '1340501', '1340502', '1340599', '1411801', '1411802',
+        '1412601', '1412602', '1412603', '1413401', '1413402', '1413403',
+        '1414200', '1422300', '2599301', '2864000', '3292201',
+        '3314720', '4616800', '4642701', '4642702', '4781400', '7723300'
+    ]
+    df = pd.read_csv("cnaes_202504212018.csv", sep=",", header=0, dtype=str, quotechar='"')
+    df.columns = ["codigo", "descricao"]
+    df = df[df["codigo"].isin(cnaes_interesse)]
+    df["legenda"] = df["codigo"] + " - " + df["descricao"].str.title()
+    return df
+
+@st.cache_data
+def carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf):
+    df_est = pd.read_csv("tabela_estabelecimentos_ce_202504221631.csv", dtype=str)
+    df_est = df_est.rename(columns=lambda x: x.strip().lower())
+    df_emp = pd.read_csv("tabela_empresas_ce_202504221631.csv", dtype=str)
+    df_socios = pd.read_csv("tabela_socios_ce_deduplicada_202504221745.csv", dtype=str)
+
+    df = df_est.merge(df_emp, on="cnpj_basico", how="left")
+
+    # Aplicação de filtros
+    if codigos_municipios:
+        df = df[df["municipio"].isin(codigos_municipios)]
+    if cnaes:
+        df = df[df["cnae_fiscal_principal"].isin(cnaes)]
+    if porte != "Todos":
+        df = df[df["porte_empresa"] == porte]
+    if termo:
+        termo = termo.upper()
+        df = df[df["nome_fantasia"].str.upper().str.contains(termo, na=False) | df["razao_social"].str.upper().str.contains(termo, na=False)]
+    if cnpj:
+        df = df[df["cnpj_basico"].str.contains(cnpj)]
+    if socio_nome_cpf:
+        df_socios_filtrado = df_socios[df_socios["nome_socio"].str.contains(socio_nome_cpf, case=False, na=False) |
+                                       df_socios["cpf_cnpj_socio"].str.contains(socio_nome_cpf, na=False)]
+        cnpjs_socios = df_socios_filtrado["cnpj_basico"].unique()
+        df = df[df["cnpj_basico"].isin(cnpjs_socios)]
+
+    # Construção do CNPJ completo formatado
+    if {"cnpj_basico", "cnpj_ordem", "cnpj_dv"}.issubset(df.columns):
+        df["cnpj_completo"] = (
+        df["cnpj_basico"].astype(str).str.zfill(8) +
+        df["cnpj_ordem"].astype(str).str.zfill(4) +
+        df["cnpj_dv"].astype(str).str.zfill(2)
+        )
+    else:
+        df["cnpj_completo"] = df["cnpj_basico"].str.zfill(14)
+
+
+    df["municipio_nome"] = df["municipio"].map(cod_para_nome)
+    df = df.rename(columns={"municipio_nome": "Município"})
+
+    # Remover duplicidades pelo CNPJ completo
+    df = df.drop_duplicates(subset=["cnpj_completo"])
+
+    # Trazer os sócios associados
+    df_socios = df_socios[df_socios["cnpj_basico"].isin(df["cnpj_basico"])]
+
+    return df, df_socios
+
+# Dados auxiliares
+cod_para_nome, nome_para_cod = carregar_municipios()
+df_cnaes = carregar_cnaes_filtrados()
+
+# CNAEs disponíveis
+df_est_base = pd.read_csv("tabela_estabelecimentos_ce_202504221631.csv", dtype=str)
+cnaes_usados = sorted(df_est_base["cnae_fiscal_principal"].dropna().unique())
+df_cnaes_disponiveis = df_cnaes[df_cnaes["codigo"].isin(cnaes_usados)].copy()
+df_cnaes_disponiveis["rotulo"] = df_cnaes_disponiveis["codigo"] + " - " + df_cnaes_disponiveis["descricao"]
+mapa_codigo_rotulo = dict(zip(df_cnaes_disponiveis["rotulo"], df_cnaes_disponiveis["codigo"]))
+
+# Interface
+st.title("🧵 Prospecção de Empresas de Moda - Ceará")
+col_reset, _ = st.columns([1, 9])
+with col_reset:
+    if st.button("🔄 Limpar Filtros"):
+        st.session_state.clear()
+        st.rerun()
+with st.expander("🎛️ Filtros", expanded=True):
+    col1, col2, col3, col4 = st.columns(4)
+    municipios_nomes = sorted(nome_para_cod.keys())
+    with col1:
+        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes)
+        codigos_municipios = [nome_para_cod[n] for n in municipios_nomes_selecionados if n in nome_para_cod]
+    with col2:
+        cnaes_rotulo = st.multiselect("CNAEs Principais", list(mapa_codigo_rotulo.keys()))
+        cnaes = [mapa_codigo_rotulo[r] for r in cnaes_rotulo]
+    with col3:
+        porte = st.selectbox("Porte da Empresa", ["Todos", "05", "03", "01", "00"], index=0)
+    with col4:
+        termo = st.text_input("🔎 Nome Fantasia ou Razão Social")
+
+    col5, col6 = st.columns(2)
+    with col5:
+        cnpj = st.text_input("🔎 CNPJ (completo ou parcial)")
+    with col6:
+        socio_nome_cpf = st.text_input("🧍 Nome ou CPF/CNPJ do Sócio")
+
+# Dados
+df, df_socios = carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf)
+st.success(f"🔍 {len(df)} empresas encontradas com os filtros aplicados.")
+
+# Exibição
+df_exibicao = df.copy()
+df_exibicao.insert(0, "Selecionar", False)
+editado = st.data_editor(
+    df_exibicao[["Selecionar", "cnpj_completo", "nome_fantasia", "razao_social", "Município"]],
+    use_container_width=True,
+    hide_index=True,
+    key="editor_tabela"
+)
+selecionados = editado[editado["Selecionar"] == True]["cnpj_completo"].tolist()
+
+# Detalhes
+if not selecionados:
+    st.info("Selecione uma ou mais empresas na tabela para ver os detalhes abaixo.")
+else:
+    for cnpj in selecionados:
+        empresa = df[df["cnpj_completo"] == cnpj].iloc[0]
+        socios_empresa = df_socios[df_socios["cnpj_basico"] == empresa["cnpj_basico"]]
+
+        with st.expander(f"🔍 Detalhes: {empresa['razao_social']}", expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                import re
+
+                def formatar_cnpj(cnpj):
+                    return re.sub(r"^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$", r"\1.\2.\3/\4-\5", cnpj)
+
+                # E no markdown:
+                st.markdown(f"**🔗 CNPJ:** {formatar_cnpj(empresa['cnpj_completo'])}")
+                st.markdown(f"**🏢 Nome Fantasia:** {empresa.get('nome_fantasia', '') or 'Não informado'}")
+                st.markdown(f"**🏛 Razão Social:** {empresa.get('razao_social', '')}")
+                st.markdown(f"**📍 Endereço:** {empresa.get('logradouro', '')}, {empresa.get('numero', '')} {empresa.get('complemento', '') or ''}, {empresa.get('bairro', '')}")
+                st.markdown(f"**🏙 Município:** {empresa.get('Município', '')} / {empresa.get('uf', '')}")
+                st.markdown(f"**📞 Telefones:** ({empresa.get('ddd1')}) {empresa.get('telefone1')} | ({empresa.get('ddd2')}) {empresa.get('telefone2')}")
+                st.markdown(f"**📬 CEP:** {empresa.get('cep', '')}")
+                st.markdown(f"**📧 E-mail:** {empresa.get('email', '') or 'Não informado'}")
+            with col2:
+                st.markdown(f"**💼 Porte:** {empresa.get('porte_empresa', '')}")
+                st.markdown(f"**🏢 Matriz ou Filial:** {'Matriz' if empresa.get('matriz_filial') == '1' else 'Filial'}")
+                data_inicio = empresa.get("data_inicio_atividade", "")
+                data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
+                st.markdown(f"**📅 Início Atividade:** {data_inicio_formatada}")
+                st.markdown(f"**🗂 Situação Cadastral:** {empresa.get('situacao_cadastral', '')}")
+                st.markdown(f"**📚 CNAE Principal:** {empresa.get('cnae_fiscal_principal', '')}")
+                st.markdown(f"**📚 CNAEs Secundários:** {empresa.get('cnae_fiscal_secundaria', '') or 'Não informado'}")
+                st.markdown(f"**👤 Resp. Legal:** {empresa.get('qualificacao_responsavel', '')}")
+                capital_str = empresa.get('capital_social', '0').replace(',', '.')
+                try:
+                    capital = float(capital_str)
+                    st.markdown(f"**💰 Capital Social:** R$ {capital:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                except ValueError:
+                    st.markdown("**💰 Capital Social:** Não informado")
+
+
+            st.markdown("---")
+            st.markdown("### 👥 Sócios")
+            if not socios_empresa.empty:
+                socios_empresa = socios_empresa.copy()
+                socios_empresa["data_entrada_sociedade"] = socios_empresa["data_entrada_sociedade"].apply(lambda x: f"{x[6:8]}/{x[4:6]}/{x[0:4]}" if pd.notna(x) and len(str(x)) == 8 else x)
+                socios_empresa = socios_empresa.rename(columns={
+                    "nome_socio": "Nome",
+                    "cpf_cnpj_socio": "CPF/CNPJ",
+                    "qualificacao_socio": "Qualificação",
+                    "data_entrada_sociedade": "Entrada",
+                    "faixa_etaria": "Faixa Etária"
+                })
+                st.dataframe(socios_empresa[["Nome", "CPF/CNPJ", "Qualificação", "Entrada", "Faixa Etária"]], use_container_width=True, hide_index=True)
+            else:
+                st.markdown("🔕 Nenhum sócio cadastrado.")
+
+
+# Exportação
+st.download_button("⬇️ Baixar resultados em CSV", df.to_csv(index=False).encode("utf-8"), "empresas_filtradas.csv", "text/csv")
+
+# Gráfico
+if not df.empty:
+    fig = px.histogram(df, x="Município", title="Distribuição por Município", color_discrete_sequence=["indigo"])
+    st.plotly_chart(fig, use_container_width=True)
