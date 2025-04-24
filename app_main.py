@@ -196,81 +196,140 @@ else:
             # Formatação da data
             data_inicio = empresa.get("data_inicio_atividade", "")
             data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
+            col1_conteudo, col2_mapa = st.columns([3,2])
+            with col1_conteudo:
+                # Estilo visual
+                st.markdown("""
+                <style>
+                .detalhes-card {
+                    background-color: #1e1e1e;
+                    padding: 25px;
+                    border-radius: 10px;
+                    margin-bottom: 15px;
+                }
+                .detalhes-coluna {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .campo-label {
+                    font-weight: bold;
+                    color: #aaa;
+                    font-size: 0.9em;
+                }
+                .campo-valor {
+                    font-size: 1.05em;
+                    margin-bottom: 5px;
+                }
+                .linha-flex {
+                    display: flex;
+                    gap: 40px;
+                    flex-wrap: wrap;
+                }
+                </style>
+                """, unsafe_allow_html=True)
 
-            # Estilo visual
-            st.markdown("""
-            <style>
-            .detalhes-card {
-                background-color: #1e1e1e;
-                padding: 25px;
-                border-radius: 10px;
-                margin-bottom: 15px;
-            }
-            .detalhes-coluna {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            .campo-label {
-                font-weight: bold;
-                color: #aaa;
-                font-size: 0.9em;
-            }
-            .campo-valor {
-                font-size: 1.05em;
-                margin-bottom: 5px;
-            }
-            .linha-flex {
-                display: flex;
-                gap: 40px;
-                flex-wrap: wrap;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
-            # HTML renderizado corretamente (unificado)
-            st.markdown(f"""
-            <div class="detalhes-card">
-                <div class="linha-flex">
-                    <div class="detalhes-coluna">
-                        <div class="campo-label">CNPJ</div>
-                        <div class="campo-valor">{formatar_cnpj(empresa['cnpj_completo'])}</div>
-                        <div class="campo-label">Nome Fantasia</div>
-                        <div class="campo-valor">{empresa.get('nome_fantasia') or 'Não informado'}</div>
-                        <div class="campo-label">Razão Social</div>
-                        <div class="campo-valor">{empresa.get('razao_social')}</div>
-                        <div class="campo-label">Endereço</div>
-                        <div class="campo-valor">{empresa.get('logradouro', '')}, {empresa.get('numero', '')} {empresa.get('complemento', '') or ''}, {empresa.get('bairro', '')}</div>
-                        <div class="campo-label">Município</div>
-                        <div class="campo-valor">{empresa.get('Município', '')} / {empresa.get('uf', '')}</div>
-                        <div class="campo-label">CEP</div>
-                        <div class="campo-valor">{empresa.get('cep', '')}</div>
-                        <div class="campo-label">E-mail</div>
-                        <div class="campo-valor">{empresa.get('email', '') or 'Não informado'}</div>
-                        <div class="campo-label">Capital Social</div>
-                        <div class="campo-valor">{capital_formatado}</div>
-                    </div>
-                    <div class="detalhes-coluna">
-                        <div class="campo-label">Porte</div>
-                        <div class="campo-valor">{empresa.get('porte_empresa')}</div>
-                        <div class="campo-label">Matriz ou Filial</div>
-                        <div class="campo-valor">{'Matriz' if empresa.get('matriz_filial') == '1' else 'Filial'}</div>
-                        <div class="campo-label">Início Atividade</div>
-                        <div class="campo-valor">{data_inicio_formatada}</div>
-                        <div class="campo-label">Situação Cadastral</div>
-                        <div class="campo-valor">{empresa.get('situacao_cadastral')}</div>
-                        <div class="campo-label">CNAE Principal</div>
-                        <div class="campo-valor">{empresa.get('cnae_fiscal_principal')}</div>
-                        <div class="campo-label">CNAEs Secundários</div>
-                        <div class="campo-valor">{empresa.get('cnae_fiscal_secundaria') or 'Não informado'}</div>
-                        <div class="campo-label">Responsável Legal</div>
-                        <div class="campo-valor">{empresa.get('qualificacao_responsavel')}</div>
+                # HTML renderizado corretamente (unificado)
+                st.markdown(f"""
+                <div class="detalhes-card">
+                    <div class="linha-flex">
+                        <div class="detalhes-coluna">
+                            <div class="campo-label">CNPJ</div>
+                            <div class="campo-valor">{formatar_cnpj(empresa['cnpj_completo'])}</div>
+                            <div class="campo-label">Nome Fantasia</div>
+                            <div class="campo-valor">{empresa.get('nome_fantasia') or 'Não informado'}</div>
+                            <div class="campo-label">Razão Social</div>
+                            <div class="campo-valor">{empresa.get('razao_social')}</div>
+                            <div class="campo-label">Endereço</div>
+                            <div class="campo-valor">{empresa.get('logradouro', '')}, {empresa.get('numero', '')} {empresa.get('complemento', '') or ''}, {empresa.get('bairro', '')}</div>
+                            <div class="campo-label">Município</div>
+                            <div class="campo-valor">{empresa.get('Município', '')} / {empresa.get('uf', '')}</div>
+                            <div class="campo-label">CEP</div>
+                            <div class="campo-valor">{empresa.get('cep', '')}</div>
+                            <div class="campo-label">E-mail</div>
+                            <div class="campo-valor">{empresa.get('email', '') or 'Não informado'}</div>
+                            <div class="campo-label">Telefone(s)</div>
+                            <div class="campo-valor">
+                                ({str(empresa.get('ddd1', '')).split('.')[0]}) {str(empresa.get('telefone1', '')).split('.')[0]}
+                                {(' | (' + str(empresa.get('ddd2', '')).split('.')[0] + ') ' + str(empresa.get('telefone2', '')).split('.')[0]) if empresa.get('telefone2') else ''}
+                            </div>
+                        </div>
+                        <div class="detalhes-coluna">
+                            <div class="campo-label">Capital Social</div>
+                            <div class="campo-valor">{capital_formatado}</div>
+                            <div class="campo-label">Porte</div>
+                            <div class="campo-valor">{empresa.get('porte_empresa')}</div>
+                            <div class="campo-label">Matriz ou Filial</div>
+                            <div class="campo-valor">{'Matriz' if empresa.get('matriz_filial') == '1' else 'Filial'}</div>
+                            <div class="campo-label">Início Atividade</div>
+                            <div class="campo-valor">{data_inicio_formatada}</div>
+                            <div class="campo-label">Situação Cadastral</div>
+                            <div class="campo-valor">{empresa.get('situacao_cadastral')}</div>
+                            <div class="campo-label">CNAE Principal</div>
+                            <div class="campo-valor">{empresa.get('cnae_fiscal_principal')}</div>
+                            <div class="campo-label">CNAEs Secundários</div>
+                            <div class="campo-valor">{empresa.get('cnae_fiscal_secundaria') or 'Não informado'}</div>
+                            <div class="campo-label">Responsável Legal</div>
+                            <div class="campo-valor">{empresa.get('qualificacao_responsavel')}</div>
+                        </div>
+                        <dib class="detalhes-coluna">
+                            <div class="campo-label">Natureza Jurídica</div>
+                            <div class="campo-valor">{empresa.get('natureza_juridica', '')}</div>
+                            <div class="campo-label">Data da Situação Cadastral</div>
+                            <div class="campo-valor">{empresa.get('data_situacao_cadastral', '')}</div>
+                            <div class="campo-label">Motivo Situação Cadastral</div>
+                            <div class="campo-valor">{empresa.get('motivo_situacao_cadastral', '') or 'Não informado'}</div>
+                            <div class="campo-label">Ente Federativo Responsável</div>
+                            <div class="campo-valor">{empresa.get('ente_federativo_responsavel', '') or 'Não informado'}</div>
+                            <div class="campo-label">Situação Especial</div>
+                            <div class="campo-valor">{empresa.get('situacao_especial', '') or 'Não informado'}</div>
+                            <div class="campo-label">Data Situação Especial</div>
+                            <div class="campo-valor">{empresa.get('data_situacao_especial', '') or 'Não informado'}</div>
+                        </dib>
                     </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            with col2_mapa:
+                from geopy.geocoders import Nominatim
+                from streamlit_folium import folium_static, st_folium
+                import folium
 
+                # Monta o endereço
+                endereco = f"{empresa.get('logradouro', '')}, {empresa.get('numero', '')}, {empresa.get('bairro', '')}, {empresa.get('Município', '')}, {empresa.get('uf', '')}, {empresa.get('cep', '')}"
 
+                # Geocodifica
+                geolocator = Nominatim(user_agent="consulta_cnpj_app")
+                location = geolocator.geocode(endereco)
+
+                if location:
+                    mapa = folium.Map(location=[location.latitude, location.longitude], zoom_start=11)
+                    folium.Marker(
+                        [location.latitude, location.longitude],
+                        popup=empresa.get("razao_social", "Empresa"),
+                        tooltip="Ver Local"
+                    ).add_to(mapa)
+
+                    st.markdown("📍 **Localização aproximada:**")
+                    st_folium(mapa, use_container_width=True, height=300)
+                else:
+                    st.warning("Endereço não encontrado no mapa.")
+
+            # Sócios permanece igual
+            st.markdown("---")
+            st.markdown("### 👥 Sócios")
+            if not socios_empresa.empty:
+                socios_empresa = socios_empresa.copy()
+                socios_empresa["data_entrada_sociedade"] = socios_empresa["data_entrada_sociedade"].apply(lambda x: f"{x[6:8]}/{x[4:6]}/{x[0:4]}" if pd.notna(x) and len(str(x)) == 8 else x)
+                socios_empresa = socios_empresa.rename(columns={
+                    "nome_socio": "Nome",
+                    "cpf_cnpj_socio": "CPF/CNPJ",
+                    "qualificacao_socio": "Qualificação",
+                    "data_entrada_sociedade": "Entrada",
+                    "faixa_etaria": "Faixa Etária"
+                })
+                st.dataframe(socios_empresa[["Nome", "CPF/CNPJ", "Qualificação", "Entrada", "Faixa Etária"]], use_container_width=True, hide_index=True)
+            else:
+                st.markdown("🔕 Nenhum sócio cadastrado.")
 
 # Exportação
 st.download_button("⬇️ Baixar resultados em CSV", df.to_csv(index=False).encode("utf-8"), "empresas_filtradas.csv", "text/csv")
