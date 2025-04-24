@@ -4,4 +4,3 @@ plotly
 geopy
 folium
 streamlit-folium>=0.11.0
-math
