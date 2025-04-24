@@ -229,7 +229,7 @@ else:
                         <div class="campo-valor">{formatar_cnpj(empresa['cnpj_completo'])}</div>
 
                         <div class="campo-label">Nome Fantasia</div>
-                        <div class="campo-valor">{empresa.get('nome_fantasia') or 'Não informado'}</div>
+                        <div class="campo-valor">{empresa['nome_fantasia'] or 'Não informado'}</div>
 
                         <div class="campo-label">Razão Social</div>
                         <div class="campo-valor">{empresa.get('razao_social')}</div>
