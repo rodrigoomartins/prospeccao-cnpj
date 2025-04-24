@@ -148,7 +148,7 @@ with st.expander("🎛️ Filtros", expanded=True):
     col_reset, _ = st.columns([3, 9])
     with col_reset:
         if st.button("🔄 Limpar Filtros"):
-            st.experimental_set_query_params()  # limpa a URL e reinicia o estado
+            st.query_params()  # limpa a URL e reinicia o estado
             st.rerun()
 
 
