@@ -96,15 +96,37 @@ with col_reset:
         st.rerun()
 with st.expander("🎛️ Filtros", expanded=True):
     col1, col2, col3, col4 = st.columns(4)
-    municipios_nomes = sorted(nome_para_cod.keys())
+
+    # Municípios com "Todos"
+    municipios_nomes = ["Todos"] + sorted(nome_para_cod.keys())
     with col1:
-        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes)
-        codigos_municipios = [nome_para_cod[n] for n in municipios_nomes_selecionados if n in nome_para_cod]
+        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes, default=["Todos"])
+        codigos_municipios = (
+            [] if "Todos" in municipios_nomes_selecionados
+            else [nome_para_cod[n] for n in municipios_nomes_selecionados if n in nome_para_cod]
+        )
+
+    # CNAEs com "Todos"
+    cnaes_rotulo = ["Todos"] + list(mapa_codigo_rotulo.keys())
     with col2:
-        cnaes_rotulo = st.multiselect("CNAEs Principais", list(mapa_codigo_rotulo.keys()))
-        cnaes = [mapa_codigo_rotulo[r] for r in cnaes_rotulo]
+        cnaes_selecionados = st.multiselect("CNAEs Principais", cnaes_rotulo, default=["Todos"])
+        cnaes = (
+            [] if "Todos" in cnaes_selecionados
+            else [mapa_codigo_rotulo[r] for r in cnaes_selecionados if r in mapa_codigo_rotulo]
+        )
+
+    # Porte da Empresa com múltiplos
+    opcoes_porte = {
+        "05": "05 - Demais",
+        "03": "03 - Média",
+        "01": "01 - Pequena",
+        "00": "00 - Não Informado"
+    }
     with col3:
-        porte = st.selectbox("Porte da Empresa", ["Todos", "05", "03", "01", "00"], index=0)
+        porte_selecionado = st.multiselect("Porte da Empresa", ["Todos"] + list(opcoes_porte.values()), default=["Todos"])
+        porte = [] if "Todos" in porte_selecionado else [k for k, v in opcoes_porte.items() if v in porte_selecionado]
+
+    # Termos
     with col4:
         termo = st.text_input("🔎 Nome Fantasia ou Razão Social")
 
@@ -113,6 +135,7 @@ with st.expander("🎛️ Filtros", expanded=True):
         cnpj = st.text_input("🔎 CNPJ (completo ou parcial)")
     with col6:
         socio_nome_cpf = st.text_input("🧍 Nome ou CPF/CNPJ do Sócio")
+
 
 # Dados
 df, df_socios = carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf)
