@@ -293,11 +293,17 @@ else:
                 from geopy.geocoders import Nominatim
                 from streamlit_folium import st_folium
                 import folium
+                
+                @st.cache_data(show_spinner=False)
+                def geocodificar_endereco(endereco):
+                    from geopy.geocoders import Nominatim
+                    geolocator = Nominatim(user_agent="consulta_cnpj_app")
+                    return geolocator.geocode(endereco)
 
                 endereco = f"{empresa.get('logradouro', '')}, {empresa.get('numero', '')}, {empresa.get('bairro', '')}, {empresa.get('Município', '')}, {empresa.get('uf', '')}, {empresa.get('cep', '')}"
 
-                geolocator = Nominatim(user_agent="consulta_cnpj_app")
-                location = geolocator.geocode(endereco)
+                # geolocator = Nominatim(user_agent="consulta_cnpj_app")
+                location = geocodificar_endereco(endereco)
 
                 if location:
                     # chave_mapa = f"mapa_empresa_{cnpj}"
