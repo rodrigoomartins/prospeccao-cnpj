@@ -106,7 +106,7 @@ with st.expander("🎛️ Filtros", expanded=True):
     # Municípios com "Todos"
     municipios_nomes = ["Todos"] + sorted(nome_para_cod.keys())
     with col1:
-        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes, key="municipios_nomes_selecionados")
+        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes,default=["Todos"], key="municipios_nomes_selecionados")
         codigos_municipios = (
             [] if "Todos" in municipios_nomes_selecionados
             else [nome_para_cod[n] for n in municipios_nomes_selecionados if n in nome_para_cod]
