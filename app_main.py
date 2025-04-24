@@ -180,40 +180,117 @@ else:
         socios_empresa = df_socios[df_socios["cnpj_basico"] == empresa["cnpj_basico"]]
 
         with st.expander(f"🔍 Detalhes: {empresa['razao_social']}", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                import re
+            import re
 
-                def formatar_cnpj(cnpj):
-                    return re.sub(r"^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$", r"\1.\2.\3/\4-\5", cnpj)
+            def formatar_cnpj(cnpj):
+                return re.sub(r"^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$", r"\1.\2.\3/\4-\5", cnpj)
 
-                # E no markdown:
-                st.markdown(f"**🔗 CNPJ:** {formatar_cnpj(empresa['cnpj_completo'])}")
-                st.markdown(f"**🏢 Nome Fantasia:** {empresa.get('nome_fantasia', '') or 'Não informado'}")
-                st.markdown(f"**🏛 Razão Social:** {empresa.get('razao_social', '')}")
-                st.markdown(f"**📍 Endereço:** {empresa.get('logradouro', '')}, {empresa.get('numero', '')} {empresa.get('complemento', '') or ''}, {empresa.get('bairro', '')}")
-                st.markdown(f"**🏙 Município:** {empresa.get('Município', '')} / {empresa.get('uf', '')}")
-                st.markdown(f"**📞 Telefones:** ({empresa.get('ddd1')}) {empresa.get('telefone1')} | ({empresa.get('ddd2')}) {empresa.get('telefone2')}")
-                st.markdown(f"**📬 CEP:** {empresa.get('cep', '')}")
-                st.markdown(f"**📧 E-mail:** {empresa.get('email', '') or 'Não informado'}")
-            with col2:
-                st.markdown(f"**💼 Porte:** {empresa.get('porte_empresa', '')}")
-                st.markdown(f"**🏢 Matriz ou Filial:** {'Matriz' if empresa.get('matriz_filial') == '1' else 'Filial'}")
-                data_inicio = empresa.get("data_inicio_atividade", "")
-                data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
-                st.markdown(f"**📅 Início Atividade:** {data_inicio_formatada}")
-                st.markdown(f"**🗂 Situação Cadastral:** {empresa.get('situacao_cadastral', '')}")
-                st.markdown(f"**📚 CNAE Principal:** {empresa.get('cnae_fiscal_principal', '')}")
-                st.markdown(f"**📚 CNAEs Secundários:** {empresa.get('cnae_fiscal_secundaria', '') or 'Não informado'}")
-                st.markdown(f"**👤 Resp. Legal:** {empresa.get('qualificacao_responsavel', '')}")
-                capital_str = empresa.get('capital_social', '0').replace(',', '.')
-                try:
-                    capital = float(capital_str)
-                    st.markdown(f"**💰 Capital Social:** R$ {capital:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-                except ValueError:
-                    st.markdown("**💰 Capital Social:** Não informado")
+            # Estilo customizado para a área de detalhes
+            st.markdown("""
+            <style>
+            .detalhes-card {
+                background-color: #1e1e1e;
+                padding: 25px;
+                border-radius: 10px;
+                margin-bottom: 15px;
+            }
+            .detalhes-coluna {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .campo-label {
+                font-weight: bold;
+                color: #aaa;
+                font-size: 0.9em;
+            }
+            .campo-valor {
+                font-size: 1.05em;
+                margin-bottom: 5px;
+            }
+            .linha-flex {
+                display: flex;
+                gap: 40px;
+                flex-wrap: wrap;
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
+            # Layout visual da ficha da empresa
+            # Ajuste da data para o formato DD/MM/AAAA
+            data_inicio = empresa.get("data_inicio_atividade", "")
+            data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
 
+            st.markdown(f"""
+            <div class="detalhes-card">
+                <div class="linha-flex">
+                    <div class="detalhes-coluna">
+                        <div class="campo-label">CNPJ</div>
+                        <div class="campo-valor">{formatar_cnpj(empresa['cnpj_completo'])}</div>
+
+                        <div class="campo-label">Nome Fantasia</div>
+                        <div class="campo-valor">{empresa.get('nome_fantasia') or 'Não informado'}</div>
+
+                        <div class="campo-label">Razão Social</div>
+                        <div class="campo-valor">{empresa.get('razao_social')}</div>
+
+                        <div class="campo-label">Endereço</div>
+                        <div class="campo-valor">{empresa.get('logradouro', '')}, {empresa.get('numero', '')} {empresa.get('complemento', '') or ''}, {empresa.get('bairro', '')}</div>
+
+                        <div class="campo-label">Município</div>
+                        <div class="campo-valor">{empresa.get('Município', '')} / {empresa.get('uf', '')}</div>
+
+                        <div class="campo-label">CEP</div>
+                        <div class="campo-valor">{empresa.get('cep', '')}</div>
+
+                        <div class="campo-label">E-mail</div>
+                        <div class="campo-valor">{empresa.get('email', '') or 'Não informado'}</div>
+                    </div>
+                    
+                    <div class="detalhes-coluna">
+                        <div class="campo-label">Porte</div>
+                        <div class="campo-valor">{empresa.get('porte_empresa')}</div>
+
+                        <div class="campo-label">Matriz ou Filial</div>
+                        <div class="campo-valor">{'Matriz' if empresa.get('matriz_filial') == '1' else 'Filial'}</div>
+
+                        <div class="campo-label">Início Atividade</div>
+                        
+                        <div class="campo-valor">{data_inicio_formatada}</div>
+
+                        <div class="campo-label">Situação Cadastral</div>
+                        <div class="campo-valor">{empresa.get('situacao_cadastral')}</div>
+
+                        <div class="campo-label">CNAE Principal</div>
+                        <div class="campo-valor">{empresa.get('cnae_fiscal_principal')}</div>
+
+                        <div class="campo-label">CNAEs Secundários</div>
+                        <div class="campo-valor">{empresa.get('cnae_fiscal_secundaria') or 'Não informado'}</div>
+
+                        <div class="campo-label">Responsável Legal</div>
+                        <div class="campo-valor">{empresa.get('qualificacao_responsavel')}</div>
+
+                        <div class="campo-label">Capital Social</div>
+                        <div class="campo-valor">
+            """, unsafe_allow_html=True)
+
+            # Capital com tratamento de erro
+            capital_str = empresa.get('capital_social', '0').replace(',', '.')
+            try:
+                capital = float(capital_str)
+                capital_formatado = f"R$ {capital:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            except:
+                capital_formatado = "Não informado"
+
+            st.markdown(f"""
+                        {capital_formatado}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Sócios permanece igual
             st.markdown("---")
             st.markdown("### 👥 Sócios")
             if not socios_empresa.empty:
@@ -229,6 +306,7 @@ else:
                 st.dataframe(socios_empresa[["Nome", "CPF/CNPJ", "Qualificação", "Entrada", "Faixa Etária"]], use_container_width=True, hide_index=True)
             else:
                 st.markdown("🔕 Nenhum sócio cadastrado.")
+
 
 
 # Exportação
