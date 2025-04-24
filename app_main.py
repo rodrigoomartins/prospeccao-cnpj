@@ -180,12 +180,24 @@ else:
         socios_empresa = df_socios[df_socios["cnpj_basico"] == empresa["cnpj_basico"]]
 
         with st.expander(f"🔍 Detalhes: {empresa['razao_social']}", expanded=False):
+            # Formatação do CNPJ
             import re
-
             def formatar_cnpj(cnpj):
                 return re.sub(r"^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$", r"\1.\2.\3/\4-\5", cnpj)
 
-            # Estilo customizado para a área de detalhes
+            # Formatação de capital
+            capital_str = empresa.get('capital_social', '0').replace(',', '.')
+            try:
+                capital = float(capital_str)
+                capital_formatado = f"R$ {capital:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            except:
+                capital_formatado = "Não informado"
+
+            # Formatação da data
+            data_inicio = empresa.get("data_inicio_atividade", "")
+            data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
+
+            # Estilo visual
             st.markdown("""
             <style>
             .detalhes-card {
@@ -216,11 +228,7 @@ else:
             </style>
             """, unsafe_allow_html=True)
 
-            # Layout visual da ficha da empresa
-            # Ajuste da data para o formato DD/MM/AAAA
-            data_inicio = empresa.get("data_inicio_atividade", "")
-            data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
-
+            # HTML renderizado corretamente (unificado)
             st.markdown(f"""
             <div class="detalhes-card">
                 <div class="linha-flex">
@@ -239,6 +247,8 @@ else:
                         <div class="campo-valor">{empresa.get('cep', '')}</div>
                         <div class="campo-label">E-mail</div>
                         <div class="campo-valor">{empresa.get('email', '') or 'Não informado'}</div>
+                        <div class="campo-label">Capital Social</div>
+                        <div class="campo-valor">{capital_formatado}</div>
                     </div>
                     <div class="detalhes-coluna">
                         <div class="campo-label">Porte</div>
@@ -255,42 +265,10 @@ else:
                         <div class="campo-valor">{empresa.get('cnae_fiscal_secundaria') or 'Não informado'}</div>
                         <div class="campo-label">Responsável Legal</div>
                         <div class="campo-valor">{empresa.get('qualificacao_responsavel')}</div>
-                        <div class="campo-label">Capital Social</div>
-                        <div class="campo-valor">
-            """, unsafe_allow_html=True)
-
-            # Capital com tratamento de erro
-            capital_str = empresa.get('capital_social', '0').replace(',', '.')
-            try:
-                capital = float(capital_str)
-                capital_formatado = f"R$ {capital:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            except:
-                capital_formatado = "Não informado"
-
-            st.markdown(f"""
-                        {capital_formatado}
-                        </div>
                     </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
-            # Sócios permanece igual
-            st.markdown("---")
-            st.markdown("### 👥 Sócios")
-            if not socios_empresa.empty:
-                socios_empresa = socios_empresa.copy()
-                socios_empresa["data_entrada_sociedade"] = socios_empresa["data_entrada_sociedade"].apply(lambda x: f"{x[6:8]}/{x[4:6]}/{x[0:4]}" if pd.notna(x) and len(str(x)) == 8 else x)
-                socios_empresa = socios_empresa.rename(columns={
-                    "nome_socio": "Nome",
-                    "cpf_cnpj_socio": "CPF/CNPJ",
-                    "qualificacao_socio": "Qualificação",
-                    "data_entrada_sociedade": "Entrada",
-                    "faixa_etaria": "Faixa Etária"
-                })
-                st.dataframe(socios_empresa[["Nome", "CPF/CNPJ", "Qualificação", "Entrada", "Faixa Etária"]], use_container_width=True, hide_index=True)
-            else:
-                st.markdown("🔕 Nenhum sócio cadastrado.")
 
 
 
