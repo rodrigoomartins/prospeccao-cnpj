@@ -347,19 +347,19 @@ else:
 
                 # Botões estilizados
                 st.markdown(f"""
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
-                    <a href='https://www.google.com/search?q=site:instagram.com+"{nome_fantasia}"+{cidade}' target='_blank'
-                    style='text-decoration: none; background-color: #833AB4; color: white; padding: 8px 16px; border-radius: 6px;
-                            font-weight: 500; font-size: 14px; display: inline-block;'>
-                    📸 Procurar no Instagram
-                    </a>
-                    <a href='https://www.google.com/search?q="{nome_fantasia}"+{razao_social}+{cidade}' target='_blank'
-                    style='text-decoration: none; background-color: #4285F4; color: white; padding: 8px 16px; border-radius: 6px;
-                            font-weight: 500; font-size: 14px; display: inline-block;'>
-                    🔎 Buscar no Google
-                    </a>
-                </div>
-                """, unsafe_allow_html=True)
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                        <a href='https://www.google.com/search?q=site:instagram.com+"{nome_fantasia}"+{cidade}' target='_blank'
+                        style='text-decoration: none; background-color: #833AB4; color: white; padding: 8px 16px; border-radius: 6px;
+                                font-weight: 500; font-size: 14px; display: inline-block;'>
+                        📸 Procurar no Instagram
+                        </a>
+                        <a href='https://www.google.com/search?q="{nome_fantasia}"+{razao_social}+{cidade}' target='_blank'
+                        style='text-decoration: none; background-color: #4285F4; color: white; padding: 8px 16px; border-radius: 6px;
+                                font-weight: 500; font-size: 14px; display: inline-block;'>
+                        🔎 Buscar no Google
+                        </a>
+                    </div>
+                    """, unsafe_allow_html=True)
 
             # Sócios permanece igual
             st.markdown("---")
