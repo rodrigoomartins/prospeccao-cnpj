@@ -92,15 +92,21 @@ st.title("🧵 Prospecção de Empresas de Moda - Ceará")
 col_reset, _ = st.columns([1, 9])
 with col_reset:
     if st.button("🔄 Limpar Filtros"):
-        st.session_state.clear()
+        st.session_state["municipios_nomes_selecionados"] = ["Todos"]
+        st.session_state["cnaes_selecionados"] = ["Todos"]
+        st.session_state["porte_selecionado"] = ["Todos"]
+        st.session_state["termo"] = ""
+        st.session_state["cnpj"] = ""
+        st.session_state["socio_nome_cpf"] = ""
         st.rerun()
+
 with st.expander("🎛️ Filtros", expanded=True):
     col1, col2, col3, col4 = st.columns(4)
 
     # Municípios com "Todos"
     municipios_nomes = ["Todos"] + sorted(nome_para_cod.keys())
     with col1:
-        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes, default=["Todos"])
+        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes, default=["Todos"], key="municipios_nomes_selecionados")
         codigos_municipios = (
             [] if "Todos" in municipios_nomes_selecionados
             else [nome_para_cod[n] for n in municipios_nomes_selecionados if n in nome_para_cod]
@@ -109,7 +115,7 @@ with st.expander("🎛️ Filtros", expanded=True):
     # CNAEs com "Todos"
     cnaes_rotulo = ["Todos"] + list(mapa_codigo_rotulo.keys())
     with col2:
-        cnaes_selecionados = st.multiselect("CNAEs Principais", cnaes_rotulo, default=["Todos"])
+        cnaes_selecionados = st.multiselect("CNAEs Principais", cnaes_rotulo, default=["Todos"], key="cnaes_selecionados")
         cnaes = (
             [] if "Todos" in cnaes_selecionados
             else [mapa_codigo_rotulo[r] for r in cnaes_selecionados if r in mapa_codigo_rotulo]
@@ -123,18 +129,18 @@ with st.expander("🎛️ Filtros", expanded=True):
         "00": "00 - Não Informado"
     }
     with col3:
-        porte_selecionado = st.multiselect("Porte da Empresa", ["Todos"] + list(opcoes_porte.values()), default=["Todos"])
+        porte_selecionado = st.multiselect("Porte da Empresa", ["Todos"] + list(opcoes_porte.values()), default=["Todos"],key="porte_selecionado")
         porte = [] if "Todos" in porte_selecionado else [k for k, v in opcoes_porte.items() if v in porte_selecionado]
 
     # Termos
     with col4:
-        termo = st.text_input("🔎 Nome Fantasia ou Razão Social")
+        termo = st.text_input("🔎 Nome Fantasia ou Razão Social",key="termo")
 
     col5, col6 = st.columns(2)
     with col5:
-        cnpj = st.text_input("🔎 CNPJ (completo ou parcial)")
+        cnpj = st.text_input("🔎 CNPJ (completo ou parcial)",key="cnpj")
     with col6:
-        socio_nome_cpf = st.text_input("🧍 Nome ou CPF/CNPJ do Sócio")
+        socio_nome_cpf = st.text_input("🧍 Nome ou CPF/CNPJ do Sócio",key="socio_nome_cpf")
 
 
 # Dados
