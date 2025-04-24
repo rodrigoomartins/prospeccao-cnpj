@@ -227,49 +227,34 @@ else:
                     <div class="detalhes-coluna">
                         <div class="campo-label">CNPJ</div>
                         <div class="campo-valor">{formatar_cnpj(empresa['cnpj_completo'])}</div>
-
                         <div class="campo-label">Nome Fantasia</div>
-                        <div class="campo-valor">{empresa['nome_fantasia'] or 'Não informado'}</div>
-
+                        <div class="campo-valor">{empresa.get('nome_fantasia') or 'Não informado'}</div>
                         <div class="campo-label">Razão Social</div>
                         <div class="campo-valor">{empresa.get('razao_social')}</div>
-
                         <div class="campo-label">Endereço</div>
                         <div class="campo-valor">{empresa.get('logradouro', '')}, {empresa.get('numero', '')} {empresa.get('complemento', '') or ''}, {empresa.get('bairro', '')}</div>
-
                         <div class="campo-label">Município</div>
                         <div class="campo-valor">{empresa.get('Município', '')} / {empresa.get('uf', '')}</div>
-
                         <div class="campo-label">CEP</div>
                         <div class="campo-valor">{empresa.get('cep', '')}</div>
-
                         <div class="campo-label">E-mail</div>
                         <div class="campo-valor">{empresa.get('email', '') or 'Não informado'}</div>
                     </div>
-                    
                     <div class="detalhes-coluna">
                         <div class="campo-label">Porte</div>
                         <div class="campo-valor">{empresa.get('porte_empresa')}</div>
-
                         <div class="campo-label">Matriz ou Filial</div>
                         <div class="campo-valor">{'Matriz' if empresa.get('matriz_filial') == '1' else 'Filial'}</div>
-
                         <div class="campo-label">Início Atividade</div>
-                        
                         <div class="campo-valor">{data_inicio_formatada}</div>
-
                         <div class="campo-label">Situação Cadastral</div>
                         <div class="campo-valor">{empresa.get('situacao_cadastral')}</div>
-
                         <div class="campo-label">CNAE Principal</div>
                         <div class="campo-valor">{empresa.get('cnae_fiscal_principal')}</div>
-
                         <div class="campo-label">CNAEs Secundários</div>
                         <div class="campo-valor">{empresa.get('cnae_fiscal_secundaria') or 'Não informado'}</div>
-
                         <div class="campo-label">Responsável Legal</div>
                         <div class="campo-valor">{empresa.get('qualificacao_responsavel')}</div>
-
                         <div class="campo-label">Capital Social</div>
                         <div class="campo-valor">
             """, unsafe_allow_html=True)
