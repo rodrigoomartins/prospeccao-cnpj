@@ -89,16 +89,6 @@ mapa_codigo_rotulo = dict(zip(df_cnaes_disponiveis["rotulo"], df_cnaes_disponive
 
 # Interface
 st.title("🧵 Prospecção de Empresas de Moda - Ceará")
-col_reset, _ = st.columns([1, 9])
-with col_reset:
-    if st.button("🔄 Limpar Filtros"):
-        st.session_state["municipios_nomes_selecionados"] = ["Todos"]
-        st.session_state["cnaes_selecionados"] = ["Todos"]
-        st.session_state["porte_selecionado"] = ["Todos"]
-        st.session_state["termo"] = ""
-        st.session_state["cnpj"] = ""
-        st.session_state["socio_nome_cpf"] = ""
-        st.rerun()
 
 with st.expander("🎛️ Filtros", expanded=True):
     col1, col2, col3, col4 = st.columns(4)
@@ -141,6 +131,7 @@ with st.expander("🎛️ Filtros", expanded=True):
         cnpj = st.text_input("🔎 CNPJ (completo ou parcial)",key="cnpj")
     with col6:
         socio_nome_cpf = st.text_input("🧍 Nome ou CPF/CNPJ do Sócio",key="socio_nome_cpf")
+    
     if "municipios_nomes_selecionados" not in st.session_state:
         st.session_state["municipios_nomes_selecionados"] = ["Todos"]
     if "cnaes_selecionados" not in st.session_state:
@@ -153,7 +144,17 @@ with st.expander("🎛️ Filtros", expanded=True):
         st.session_state["cnpj"] = ""
     if "socio_nome_cpf" not in st.session_state:
         st.session_state["socio_nome_cpf"] = ""
-
+        
+        col_reset, _ = st.columns([3, 9])
+        with col_reset:
+            if st.button("🔄 Limpar Filtros"):
+                st.session_state["municipios_nomes_selecionados"] = ["Todos"]
+                st.session_state["cnaes_selecionados"] = ["Todos"]
+                st.session_state["porte_selecionado"] = ["Todos"]
+                st.session_state["termo"] = ""
+                st.session_state["cnpj"] = ""
+                st.session_state["socio_nome_cpf"] = ""
+                st.rerun()
 
 # Dados
 df, df_socios = carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf)
