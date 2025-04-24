@@ -41,7 +41,7 @@ def carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf
         df = df[df["municipio"].isin(codigos_municipios)]
     if cnaes:
         df = df[df["cnae_fiscal_principal"].isin(cnaes)]
-    if porte != "Todos":
+    if porte:
         df = df[df["porte_empresa"] == porte]
     if termo:
         termo = termo.upper()
