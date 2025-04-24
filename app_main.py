@@ -196,7 +196,7 @@ else:
             # Formatação da data
             data_inicio = empresa.get("data_inicio_atividade", "")
             data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
-            col1_conteudo, col2_mapa = st.columns([3,2])
+            col1_conteudo, col2_mapa = st.columns([2,1])
             with col1_conteudo:
                 # Estilo visual
                 st.markdown("""
@@ -291,29 +291,74 @@ else:
                 """, unsafe_allow_html=True)
             with col2_mapa:
                 from geopy.geocoders import Nominatim
-                from streamlit_folium import folium_static, st_folium
+                from streamlit_folium import st_folium
                 import folium
 
-                # Monta o endereço
                 endereco = f"{empresa.get('logradouro', '')}, {empresa.get('numero', '')}, {empresa.get('bairro', '')}, {empresa.get('Município', '')}, {empresa.get('uf', '')}, {empresa.get('cep', '')}"
 
-                # Geocodifica
                 geolocator = Nominatim(user_agent="consulta_cnpj_app")
                 location = geolocator.geocode(endereco)
 
                 if location:
-                    mapa = folium.Map(location=[location.latitude, location.longitude], zoom_start=11)
-                    folium.Marker(
-                        [location.latitude, location.longitude],
-                        popup=empresa.get("razao_social", "Empresa"),
-                        tooltip="Ver Local",
-                        icon=folium.Icon(icon="map-marker", prefix="fa", color="blue")
-                    ).add_to(mapa)
+                    chave_mapa = f"mapa_empresa_{cnpj}"
+                    if chave_mapa not in st.session_state:
+                        mapa = folium.Map(location=[location.latitude, location.longitude], zoom_start=11)
+                        folium.Marker(
+                            [location.latitude, location.longitude],
+                            popup=empresa.get("razao_social", "Empresa"),
+                            tooltip="Ver Local",
+                            icon=folium.Icon(icon="map-marker", prefix="fa", color="blue")
+                        ).add_to(mapa)
+                        st.session_state[chave_mapa] = mapa
 
                     st.markdown("📍 **Localização aproximada:**")
-                    st_folium(mapa, use_container_width=True, height=300)
+                    st_folium(st.session_state[chave_mapa], use_container_width=True, height=300, key=f"mapa_{cnpj}")
                 else:
                     st.warning("Endereço não encontrado no mapa.")
+                st.markdown("### 🌐 Presença Digital")
+
+                import math
+
+                # Função utilitária para limpar valores nulos ou 'nan'
+                def limpar_valor(valor):
+                    if not valor or (isinstance(valor, float) and math.isnan(valor)) or str(valor).lower() == "nan":
+                        return ""
+                    return str(valor)
+
+                # Coleta e limpa os dados
+                # Evita usar "nan" nos links
+                nome_fantasia = empresa.get("nome_fantasia", "")
+                razao_social = empresa.get("razao_social", "")
+                cidade = empresa.get("Município", "")
+                # Remove nans explícitos
+                for var in ["nome_fantasia", "razao_social", "cidade"]:
+                    val = locals()[var]
+                    if pd.isna(val) or val == "nan":
+                        locals()[var] = ""
+                
+                # Google: combinação completa
+                query_google = f"{razao_social} {nome_fantasia} {cidade}".strip().replace(" ", "+")
+                url_google = f"https://www.google.com/search?q={query_google}"
+
+                # Instagram: só nome fantasia e cidade
+                query_insta = f'"{nome_fantasia}" {cidade}'.strip().replace(" ", "+")
+                url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
+
+                # Botões estilizados
+                st.markdown(f"""
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                    <a href='https://www.google.com/search?q=site:instagram.com+"{nome_fantasia}"+{cidade}' target='_blank'
+                    style='text-decoration: none; background-color: #833AB4; color: white; padding: 8px 16px; border-radius: 6px;
+                            font-weight: 500; font-size: 14px; display: inline-block;'>
+                    📸 Procurar no Instagram
+                    </a>
+                    <a href='https://www.google.com/search?q="{nome_fantasia}"+{razao_social}+{cidade}' target='_blank'
+                    style='text-decoration: none; background-color: #4285F4; color: white; padding: 8px 16px; border-radius: 6px;
+                            font-weight: 500; font-size: 14px; display: inline-block;'>
+                    🔎 Buscar no Google
+                    </a>
+                </div>
+                """, unsafe_allow_html=True)
 
             # Sócios permanece igual
             st.markdown("---")
