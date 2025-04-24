@@ -300,21 +300,22 @@ else:
                 location = geolocator.geocode(endereco)
 
                 if location:
-                    chave_mapa = f"mapa_empresa_{cnpj}"
-                    if chave_mapa not in st.session_state:
-                        mapa = folium.Map(location=[location.latitude, location.longitude], zoom_start=11)
-                        folium.Marker(
-                            [location.latitude, location.longitude],
-                            popup=empresa.get("razao_social", "Empresa"),
-                            tooltip="Ver Local",
-                            icon=folium.Icon(icon="map-marker", prefix="fa", color="blue")
-                        ).add_to(mapa)
-                        st.session_state[chave_mapa] = mapa
+                    # chave_mapa = f"mapa_empresa_{cnpj}"
+                    # if chave_mapa not in st.session_state:
+                    mapa = folium.Map(location=[location.latitude, location.longitude], zoom_start=11)
+                    folium.Marker(
+                        [location.latitude, location.longitude],
+                        popup=empresa.get("razao_social", "Empresa"),
+                        tooltip="Ver Local",
+                        icon=folium.Icon(icon="map-marker", prefix="fa", color="blue")
+                    ).add_to(mapa)
+                    # st.session_state[chave_mapa] = mapa
 
                     st.markdown("📍 **Localização aproximada:**")
-                    st_folium(st.session_state[chave_mapa], use_container_width=True, height=300, key=f"mapa_{cnpj}")
+                    st_folium(mapa, use_container_width=True, height=300)
                 else:
                     st.warning("Endereço não encontrado no mapa.")
+                
                 st.markdown("### 🌐 Presença Digital")
 
                 import math
