@@ -145,16 +145,16 @@ with st.expander("🎛️ Filtros", expanded=True):
     if "socio_nome_cpf" not in st.session_state:
         st.session_state["socio_nome_cpf"] = ""
         
-        col_reset, _ = st.columns([3, 9])
-        with col_reset:
-            if st.button("🔄 Limpar Filtros"):
-                st.session_state["municipios_nomes_selecionados"] = ["Todos"]
-                st.session_state["cnaes_selecionados"] = ["Todos"]
-                st.session_state["porte_selecionado"] = ["Todos"]
-                st.session_state["termo"] = ""
-                st.session_state["cnpj"] = ""
-                st.session_state["socio_nome_cpf"] = ""
-                st.rerun()
+    col_reset, _ = st.columns([3, 9])
+    with col_reset:
+        if st.button("🔄 Limpar Filtros"):
+            st.session_state["municipios_nomes_selecionados"] = ["Todos"]
+            st.session_state["cnaes_selecionados"] = ["Todos"]
+            st.session_state["porte_selecionado"] = ["Todos"]
+            st.session_state["termo"] = ""
+            st.session_state["cnpj"] = ""
+            st.session_state["socio_nome_cpf"] = ""
+            st.rerun()
 
 # Dados
 df, df_socios = carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf)
