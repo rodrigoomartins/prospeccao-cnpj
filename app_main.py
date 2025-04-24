@@ -106,7 +106,7 @@ with st.expander("🎛️ Filtros", expanded=True):
     # Municípios com "Todos"
     municipios_nomes = ["Todos"] + sorted(nome_para_cod.keys())
     with col1:
-        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes, default=["Todos"], key="municipios_nomes_selecionados")
+        municipios_nomes_selecionados = st.multiselect("Municípios", municipios_nomes, key="municipios_nomes_selecionados")
         codigos_municipios = (
             [] if "Todos" in municipios_nomes_selecionados
             else [nome_para_cod[n] for n in municipios_nomes_selecionados if n in nome_para_cod]
@@ -141,6 +141,18 @@ with st.expander("🎛️ Filtros", expanded=True):
         cnpj = st.text_input("🔎 CNPJ (completo ou parcial)",key="cnpj")
     with col6:
         socio_nome_cpf = st.text_input("🧍 Nome ou CPF/CNPJ do Sócio",key="socio_nome_cpf")
+    if "municipios_nomes_selecionados" not in st.session_state:
+        st.session_state["municipios_nomes_selecionados"] = ["Todos"]
+    if "cnaes_selecionados" not in st.session_state:
+        st.session_state["cnaes_selecionados"] = ["Todos"]
+    if "porte_selecionado" not in st.session_state:
+        st.session_state["porte_selecionado"] = ["Todos"]
+    if "termo" not in st.session_state:
+        st.session_state["termo"] = ""
+    if "cnpj" not in st.session_state:
+        st.session_state["cnpj"] = ""
+    if "socio_nome_cpf" not in st.session_state:
+        st.session_state["socio_nome_cpf"] = ""
 
 
 # Dados
