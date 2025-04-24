@@ -306,7 +306,8 @@ else:
                     folium.Marker(
                         [location.latitude, location.longitude],
                         popup=empresa.get("razao_social", "Empresa"),
-                        tooltip="Ver Local"
+                        tooltip="Ver Local",
+                        icon=folium.Icon(icon="map-marker", prefix="fa", color="blue")
                     ).add_to(mapa)
 
                     st.markdown("📍 **Localização aproximada:**")
