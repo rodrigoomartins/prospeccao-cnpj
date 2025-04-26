@@ -8,27 +8,23 @@ import yaml
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-# Cria uma cópia só do que interessa
-credentials = {
-    "usernames": {
-        username: {
-            "email": st.secrets[f"credentials.usernames.{username}"]["email"],
-            "name": st.secrets[f"credentials.usernames.{username}"]["name"],
-            "password": st.secrets[f"credentials.usernames.{username}"]["password"],
-        }
-        for username in ["rodrigo", "marcia", "edmilson"]  # <- atualize essa lista!
-    }
+# Diretamente pega do secrets
+config = {
+    "credentials": dict(st.secrets["credentials"])
 }
 
+# Autenticação
 authenticator = stauth.Authenticate(
-    credentials,
+    config["credentials"],
     cookie_name="prospeccao_app",
     key="abcdef",
     cookie_expiry_days=1
 )
 
+# Login
 authenticator.login("main")
 
+# Controle de autenticação
 if st.session_state.get("authentication_status"):
     authenticator.logout("Sair", "sidebar")
     st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
@@ -38,8 +34,6 @@ elif st.session_state.get("authentication_status") is False:
 elif st.session_state.get("authentication_status") is None:
     st.warning("Por favor, preencha seu login.")
     st.stop()
-
-
 
 @st.cache_data
 def carregar_municipios():
