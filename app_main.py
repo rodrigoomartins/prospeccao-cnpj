@@ -10,7 +10,7 @@ import copy
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
 # Corrigir: fazer deep copy para não usar diretamente secrets
-config = {"credentials": copy.deepcopy(st.secrets["credentials"])}
+config = {"credentials": dict(st.secrets["credentials"])}
 
 # Configura authenticator
 authenticator = stauth.Authenticate(
@@ -33,7 +33,7 @@ elif st.session_state.get("authentication_status") is False:
 elif st.session_state.get("authentication_status") is None:
     st.warning("Por favor, preencha seu login.")
     st.stop()
-    
+
 @st.cache_data
 def carregar_municipios():
     df = pd.read_csv("F.K03200$Z.D50307MUNIC.csv", sep=";", header=None, dtype=str)
