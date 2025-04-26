@@ -391,12 +391,15 @@ else:
             query_google = f"{razao_social} {nome_fantasia} {cidade}".strip().replace(" ", "+")
             url_google = f"https://www.google.com/search?q={query_google}"
 
-            # Tratamento de nome fantasia vazio
+            # Construção segura da busca Instagram
             if nome_fantasia:
-                query_insta = f'"{nome_fantasia}" {cidade}'.strip().replace(" ", "+")
+                termo_busca = nome_fantasia
+            elif razao_social:
+                termo_busca = razao_social
             else:
-                query_insta = f'"{razao_social}" {cidade}'.strip().replace(" ", "+")  # usa razão social como fallback
+                termo_busca = cidade  # fallback para cidade se tudo estiver vazio
 
+            query_insta = f'"{termo_busca}" {cidade}'.strip().replace(" ", "+")
             url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
 
             # Layout de botões
