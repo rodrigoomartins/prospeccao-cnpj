@@ -9,30 +9,61 @@ import copy
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-# Cópia verdadeira dos dados de credenciais
-credentials = copy.deepcopy(st.secrets["credentials"])
+# Carrega as credenciais armazenadas em st.secrets, adaptando-as ao formato exigido.
+# Evita modificar st.secrets diretamente (Streamlit Cloud não permite escrita em st.secrets).
+if "credentials" in st.secrets:
+    # Se as credenciais já estiverem estruturadas em st.secrets (ex: via secrets.toml)
+    credenciais = dict(st.secrets["credentials"])
+else:
+    # Monta o dicionário de credenciais a partir de listas/valores em st.secrets
+    usuarios = st.secrets["usernames"] if "usernames" in st.secrets else st.secrets["emails"]
+    credenciais = {"usernames": {}}
+    for i, user in enumerate(usuarios):
+        credenciais["usernames"][user] = {
+            "name": st.secrets["names"][i],
+            "email": st.secrets["emails"][i],
+            "password": st.secrets["hashed_passwords"][i]
+        }
+# Obs: O dicionário 'credenciais' agora tem o formato:
+# {
+#   "usernames": {
+#       "usuario1": {"name": "Nome Completo", "email": "email@dominio.com", "password": "senha_hash"},
+#       "usuario2": { ... },
+#       ...
+#   }
+# }
 
-# Instanciar o authenticator
-authenticator = stauth.Authenticate(
-    credentials,
-    cookie_name="prospeccao_app",
-    key="abcdef",
-    cookie_expiry_days=1
-)
+# Configurações do cookie de autenticação (para persistir sessão do usuário).
+cookie_name = st.secrets["cookie"]["name"] if "cookie" in st.secrets else "nome_do_cookie"
+cookie_key = st.secrets["cookie"]["key"] if "cookie" in st.secrets else "chave_assinatura_cookie"
+cookie_days = st.secrets["cookie"]["expiry_days"] if "cookie" in st.secrets else 0  # 0 = não manter sessão após fechar o navegador
 
-# Login
-authenticator.login("main")
+# (Opcional) Lista de e-mails pré-autorizados para registro de novos usuários.
+preauthorized = st.secrets["preauthorized"] if "preauthorized" in st.secrets else None
 
-# Controle de autenticação
-if st.session_state.get("authentication_status"):
-    authenticator.logout("Sair", "sidebar")
-    st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
-elif st.session_state.get("authentication_status") is False:
-    st.error("Usuário ou senha incorretos.")
-    st.stop()
-elif st.session_state.get("authentication_status") is None:
-    st.warning("Por favor, preencha seu login.")
-    st.stop()
+# Inicializa o objeto de autenticação com as credenciais e configurações fornecidas.
+if preauthorized:
+    authenticator = stauth.Authenticate(credenciais, cookie_name, cookie_key, cookie_days, preauthorized)
+else:
+    authenticator = stauth.Authenticate(credenciais, cookie_name, cookie_key, cookie_days)
+
+# Exibe o formulário de login na interface.
+nome, estado_autenticacao, nome_usuario = authenticator.login("Login", "main")
+
+# Verifica o resultado da autenticação para decidir o que mostrar ao usuário.
+if estado_autenticacao:
+    # Sucesso no login: exibe boas-vindas e conteúdo protegido.
+    st.success(f"Bem-vindo, *{nome}*!")  # mensagem de boas-vindas com o nome do usuário
+    # (Coloque aqui o conteúdo da aplicação que deve ser acessível apenas após login)
+    authenticator.logout("Logout", "main")  # fornece um botão de logout
+elif estado_autenticacao == False:
+    # Falha na autenticação: informa credenciais incorretas.
+    st.error("Usuário ou senha incorretos. Por favor, tente novamente.")
+    st.stop()  # interrompe a execução do app aqui (impede acesso ao conteúdo sem login)
+else:
+    # estado_autenticacao == None -> Formulário em branco ou não submetido.
+    st.warning("Insira seu usuário e senha para continuar.")
+    st.stop()  # interrompe a execução até que o usuário insira as credenciais
 
 @st.cache_data
 def carregar_municipios():
