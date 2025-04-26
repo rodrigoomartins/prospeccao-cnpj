@@ -4,35 +4,34 @@ import plotly.express as px
 import streamlit_authenticator as stauth
 import os
 from dotenv import load_dotenv
+import yaml
 
-load_dotenv()
-names = os.getenv("USERS_NAMES", "").split(",")
-usernames = os.getenv("USERS_USERNAMES", "").split(",")
-passwords = os.getenv("USERS_PASSWORDS", "").split(",")
-# Hashear as senhas (preferencialmente gerar uma vez e depois usar já hashadas)
-hashed_passwords = stauth.Hasher(passwords).generate()
+st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
+config = yaml.safe_load(st.secrets["credentials"])
+
+# Passa o config direto para o Authenticator
 authenticator = stauth.Authenticate(
-    names,
-    usernames,
-    hashed_passwords,
-    "prospeccao_app",
-    "abcdef",
+    config['credentials'],
+    cookie_name="prospeccao_app",
+    key="abcdef",
     cookie_expiry_days=1
 )
 
-name, authentication_status, username = authenticator.login("Login", "main")
+authenticator.login("main")
 
-if authentication_status == False:
-    st.error("Usuário ou senha incorretos")
-if authentication_status == None:
-    st.warning("Por favor, insira seu usuário e senha")
-if authentication_status:
-    authenticator.logout("Logout", "sidebar")
-    st.sidebar.success(f"Bem-vindo(a), {name}!")
+if st.session_state.get("authentication_status"):
+    authenticator.logout("Sair", "sidebar")
+    st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
+elif st.session_state.get("authentication_status") is False:
+    st.error("Usuário ou senha incorretos.")
+    st.stop()
+elif st.session_state.get("authentication_status") is None:
+    st.warning("Por favor, preencha seu login.")
+    st.stop()
 
 
-st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
+
 
 @st.cache_data
 def carregar_municipios():
@@ -90,7 +89,7 @@ def carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf
         df = df[df["cnpj_basico"].str.contains(cnpj)]
     if socio_nome_cpf:
         df_socios_filtrado = df_socios[df_socios["nome_socio"].str.contains(socio_nome_cpf, case=False, na=False) |
-                                       df_socios["cpf_cnpj_socio"].str.contains(socio_nome_cpf, na=False)]
+                                    df_socios["cpf_cnpj_socio"].str.contains(socio_nome_cpf, na=False)]
         cnpjs_socios = df_socios_filtrado["cnpj_basico"].unique()
         df = df[df["cnpj_basico"].isin(cnpjs_socios)]
 
@@ -409,7 +408,7 @@ else:
             # --- Novo expander para envio ao CRM ---
             st.divider()
             st.markdown("### 📤 Enviar para o Odoo CRM")
-           
+        
             # Selecionar o vendedor
             usuario_selecionado = st.selectbox(
                 "👤 Atribuir a oportunidade para:",
@@ -518,4 +517,3 @@ with col2_heatmap:
         st_folium(mapa, use_container_width=True, height=600)
     else:
         st.warning("Nenhuma empresa encontrada para gerar o mapa.")
-
