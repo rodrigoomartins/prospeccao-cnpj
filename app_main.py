@@ -391,16 +391,22 @@ else:
             query_google = f"{razao_social} {nome_fantasia} {cidade}".strip().replace(" ", "+")
             url_google = f"https://www.google.com/search?q={query_google}"
 
-            # Construção segura da busca Instagram
-            if nome_fantasia:
-                termo_busca = nome_fantasia
-            elif razao_social:
-                termo_busca = razao_social
-            else:
-                termo_busca = cidade  # fallback para cidade se tudo estiver vazio
+            # Evitar termo vazio
+            termo_busca = None
 
-            query_insta = f'"{termo_busca}" {cidade}'.strip().replace(" ", "+")
-            url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
+            if nome_fantasia and nome_fantasia.strip():
+                termo_busca = nome_fantasia.strip()
+            elif razao_social and razao_social.strip():
+                termo_busca = razao_social.strip()
+            elif cidade and cidade.strip():
+                termo_busca = cidade.strip()
+
+            if termo_busca:
+                query_insta = termo_busca.replace(" ", "+")
+                url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
+            else:
+                url_insta = "https://www.instagram.com"  # Se não tiver NADA, manda pro Instagram principal
+
 
             # Layout de botões
             st.markdown("### 🌐 Ações de Prospecção")
