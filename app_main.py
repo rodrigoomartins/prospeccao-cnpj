@@ -8,9 +8,10 @@ import yaml
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
+# Carrega do Secrets
 config = {"credentials": st.secrets["credentials"]}
 
-# Passa o config direto para o Authenticator
+# Configura authenticator
 authenticator = stauth.Authenticate(
     config['credentials'],
     cookie_name="prospeccao_app",
@@ -18,20 +19,19 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
+# Autenticação
 authenticator.login("main")
 
 if st.session_state.get("authentication_status"):
     authenticator.logout("Sair", "sidebar")
     st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
+    # Aqui segue seu app
 elif st.session_state.get("authentication_status") is False:
     st.error("Usuário ou senha incorretos.")
     st.stop()
 elif st.session_state.get("authentication_status") is None:
     st.warning("Por favor, preencha seu login.")
     st.stop()
-
-
-
 
 @st.cache_data
 def carregar_municipios():
