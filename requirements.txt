@@ -1,7 +1,6 @@
 streamlit
 pandas
 python-dotenv
-xmlrpc
 folium
 streamlit-folium
 plotly
