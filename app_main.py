@@ -9,10 +9,17 @@ import copy
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-# Corrigir: fazer deep copy para não usar diretamente secrets
-config = {"credentials": dict(st.secrets["credentials"])}
+def secrets_to_dict(secrets_obj):
+    """Converte recursivamente SecretsDict para dict normal."""
+    if isinstance(secrets_obj, dict):
+        return {k: secrets_to_dict(v) for k, v in secrets_obj.items()}
+    else:
+        return secrets_obj
 
-# Configura authenticator
+# Converte corretamente tudo do secrets
+config = {"credentials": secrets_to_dict(st.secrets["credentials"])}
+
+# Autenticação
 authenticator = stauth.Authenticate(
     config['credentials'],
     cookie_name="prospeccao_app",
@@ -20,19 +27,19 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# Login
 authenticator.login("main")
 
 if st.session_state.get("authentication_status"):
     authenticator.logout("Sair", "sidebar")
     st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
-    # Aqui seu app principal segue
 elif st.session_state.get("authentication_status") is False:
     st.error("Usuário ou senha incorretos.")
     st.stop()
 elif st.session_state.get("authentication_status") is None:
     st.warning("Por favor, preencha seu login.")
     st.stop()
+
+
 
 @st.cache_data
 def carregar_municipios():
