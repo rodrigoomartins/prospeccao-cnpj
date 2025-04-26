@@ -9,48 +9,39 @@ import copy
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-# Carrega as credenciais armazenadas em st.secrets, adaptando-as ao formato exigido.
-# Evita modificar st.secrets diretamente (Streamlit Cloud não permite escrita em st.secrets).
-if "credentials" in st.secrets:
-    # Se as credenciais já estiverem estruturadas em st.secrets (ex: via secrets.toml)
-    credenciais = dict(st.secrets["credentials"])
-else:
-    # Monta o dicionário de credenciais a partir de listas/valores em st.secrets
-    usuarios = st.secrets["usernames"] if "usernames" in st.secrets else st.secrets["emails"]
-    credenciais = {"usernames": {}}
-    for i, user in enumerate(usuarios):
-        credenciais["usernames"][user] = {
-            "name": st.secrets["names"][i],
-            "email": st.secrets["emails"][i],
-            "password": st.secrets["hashed_passwords"][i]
-        }
-# Obs: O dicionário 'credenciais' agora tem o formato:
-# {
-#   "usernames": {
-#       "usuario1": {"name": "Nome Completo", "email": "email@dominio.com", "password": "senha_hash"},
-#       "usuario2": { ... },
-#       ...
-#   }
-# }
+# Carregando usuários do st.secrets
+credentials = {
+    "usernames": {
+        st.secrets["USERNAME1"]: {
+            "email": st.secrets["EMAIL1"],
+            "name": st.secrets["USERNAME1"],  # ou um nome separado, se quiser criar
+            "password": st.secrets["PASSWORD1"],
+        },
+        st.secrets["USERNAME2"]: {
+            "email": st.secrets["EMAIL2"],
+            "name": st.secrets["USERNAME2"],
+            "password": st.secrets["PASSWORD2"],
+        },
+        st.secrets["USERNAME3"]: {
+            "email": st.secrets["EMAIL3"],
+            "name": st.secrets["USERNAME3"],
+            "password": st.secrets["PASSWORD3"],
+        },
+    }
+}
 
-# Configurações do cookie de autenticação (para persistir sessão do usuário).
-cookie_name = st.secrets["cookie"]["name"] if "cookie" in st.secrets else "nome_do_cookie"
-cookie_key = st.secrets["cookie"]["key"] if "cookie" in st.secrets else "chave_assinatura_cookie"
-cookie_days = st.secrets["cookie"]["expiry_days"] if "cookie" in st.secrets else 0  # 0 = não manter sessão após fechar o navegador
+# Inicializa o Authenticator
+authenticator = stauth.Authenticate(
+    credentials,
+    cookie_name="prospeccao_app",
+    key="abcdef",
+    cookie_expiry_days=1,
+)
 
-# (Opcional) Lista de e-mails pré-autorizados para registro de novos usuários.
-preauthorized = st.secrets["preauthorized"] if "preauthorized" in st.secrets else None
-
-# Inicializa o objeto de autenticação com as credenciais e configurações fornecidas.
-if preauthorized:
-    authenticator = stauth.Authenticate(credenciais, cookie_name, cookie_key, cookie_days, preauthorized)
-else:
-    authenticator = stauth.Authenticate(credenciais, cookie_name, cookie_key, cookie_days)
-
-# Exibe o formulário de login
+# Exibe login
 authenticator.login(location="main")
 
-# Avalia o status da autenticação
+# Avalia status da sessão
 if st.session_state.get("authentication_status") is True:
     authenticator.logout("Sair", location="sidebar")
     st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
