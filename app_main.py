@@ -5,23 +5,23 @@ import streamlit_authenticator as stauth
 import os
 from dotenv import load_dotenv
 import yaml
-import copy
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-def secrets_to_dict(secrets_obj):
-    """Converte recursivamente SecretsDict para dict normal."""
-    if isinstance(secrets_obj, dict):
-        return {k: secrets_to_dict(v) for k, v in secrets_obj.items()}
-    else:
-        return secrets_obj
+# Cria uma cópia só do que interessa
+credentials = {
+    "usernames": {
+        username: {
+            "email": st.secrets[f"credentials.usernames.{username}"]["email"],
+            "name": st.secrets[f"credentials.usernames.{username}"]["name"],
+            "password": st.secrets[f"credentials.usernames.{username}"]["password"],
+        }
+        for username in ["rodrigo", "marcia", "edmilson"]  # <- atualize essa lista!
+    }
+}
 
-# Converte corretamente tudo do secrets
-config = {"credentials": secrets_to_dict(st.secrets["credentials"])}
-
-# Autenticação
 authenticator = stauth.Authenticate(
-    config['credentials'],
+    credentials,
     cookie_name="prospeccao_app",
     key="abcdef",
     cookie_expiry_days=1
