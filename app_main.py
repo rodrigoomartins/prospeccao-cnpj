@@ -48,7 +48,7 @@ else:
     authenticator = stauth.Authenticate(credenciais, cookie_name, cookie_key, cookie_days)
 
 # Exibe o formulário de login na interface.
-nome, estado_autenticacao, nome_usuario = authenticator.login("Login", "main")
+nome, estado_autenticacao, nome_usuario = authenticator.login(location="main")
 
 # Verifica o resultado da autenticação para decidir o que mostrar ao usuário.
 if estado_autenticacao:
