@@ -1,6 +1,36 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit_authenticator as stauth
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+names = os.getenv("USERS_NAMES", "").split(",")
+usernames = os.getenv("USERS_USERNAMES", "").split(",")
+passwords = os.getenv("USERS_PASSWORDS", "").split(",")
+# Hashear as senhas (preferencialmente gerar uma vez e depois usar já hashadas)
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+authenticator = stauth.Authenticate(
+    names,
+    usernames,
+    hashed_passwords,
+    "prospeccao_app",
+    "abcdef",
+    cookie_expiry_days=1
+)
+
+name, authentication_status, username = authenticator.login("Login", "main")
+
+if authentication_status == False:
+    st.error("Usuário ou senha incorretos")
+if authentication_status == None:
+    st.warning("Por favor, insira seu usuário e senha")
+if authentication_status:
+    authenticator.logout("Logout", "sidebar")
+    st.sidebar.success(f"Bem-vindo(a), {name}!")
+
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
