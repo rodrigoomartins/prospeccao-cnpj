@@ -8,7 +8,7 @@ import yaml
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-config = yaml.safe_load(st.secrets["credentials"])
+config = {"credentials": st.secrets["credentials"]}
 
 # Passa o config direto para o Authenticator
 authenticator = stauth.Authenticate(
