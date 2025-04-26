@@ -47,23 +47,19 @@ if preauthorized:
 else:
     authenticator = stauth.Authenticate(credenciais, cookie_name, cookie_key, cookie_days)
 
-# Exibe o formulário de login na interface.
-nome, estado_autenticacao, nome_usuario = authenticator.login(location="main")
+# Exibe o formulário de login
+authenticator.login(location="main")
 
-# Verifica o resultado da autenticação para decidir o que mostrar ao usuário.
-if estado_autenticacao:
-    # Sucesso no login: exibe boas-vindas e conteúdo protegido.
-    st.success(f"Bem-vindo, *{nome}*!")  # mensagem de boas-vindas com o nome do usuário
-    # (Coloque aqui o conteúdo da aplicação que deve ser acessível apenas após login)
-    authenticator.logout("Logout", "main")  # fornece um botão de logout
-elif estado_autenticacao == False:
-    # Falha na autenticação: informa credenciais incorretas.
-    st.error("Usuário ou senha incorretos. Por favor, tente novamente.")
-    st.stop()  # interrompe a execução do app aqui (impede acesso ao conteúdo sem login)
-else:
-    # estado_autenticacao == None -> Formulário em branco ou não submetido.
-    st.warning("Insira seu usuário e senha para continuar.")
-    st.stop()  # interrompe a execução até que o usuário insira as credenciais
+# Avalia o status da autenticação
+if st.session_state.get("authentication_status") is True:
+    authenticator.logout("Sair", location="sidebar")
+    st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
+elif st.session_state.get("authentication_status") is False:
+    st.error("Usuário ou senha incorretos.")
+    st.stop()
+elif st.session_state.get("authentication_status") is None:
+    st.warning("Por favor, preencha seu login.")
+    st.stop()
 
 @st.cache_data
 def carregar_municipios():
