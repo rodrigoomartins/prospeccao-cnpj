@@ -5,17 +5,16 @@ import streamlit_authenticator as stauth
 import os
 from dotenv import load_dotenv
 import yaml
+import copy
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-# Diretamente pega do secrets
-config = {
-    "credentials": dict(st.secrets["credentials"])
-}
+# Cópia verdadeira dos dados de credenciais
+credentials = copy.deepcopy(st.secrets["credentials"])
 
-# Autenticação
+# Instanciar o authenticator
 authenticator = stauth.Authenticate(
-    config["credentials"],
+    credentials,
     cookie_name="prospeccao_app",
     key="abcdef",
     cookie_expiry_days=1
