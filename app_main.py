@@ -28,6 +28,16 @@ def carregar_cnaes_filtrados():
     return df
 
 @st.cache_data
+def carregar_marcadores():
+    df_tags = pd.read_csv("marcadores_extraidos.csv")
+    df_tags.columns = [col.strip() for col in df_tags.columns]
+    mapa_tags = dict(zip(df_tags["name"], df_tags["id"]))  # Agora usando o nome e id corretos
+    return mapa_tags
+
+mapa_marcadores = carregar_marcadores()
+
+
+@st.cache_data
 def carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf):
     df_est = pd.read_csv("tabela_estabelecimentos_ce_202504221631.csv", dtype=str)
     df_est = df_est.rename(columns=lambda x: x.strip().lower())
@@ -75,6 +85,28 @@ def carregar_dados(codigos_municipios, cnaes, porte, termo, cnpj, socio_nome_cpf
     df_socios = df_socios[df_socios["cnpj_basico"].isin(df["cnpj_basico"])]
 
     return df, df_socios
+
+import pandas as pd
+import os
+
+def carregar_envios_odoo():
+    if os.path.exists('envios_odoo.csv'):
+        return pd.read_csv('envios_odoo.csv', dtype=str)
+    else:
+        return pd.DataFrame(columns=['cnpj_completo', 'data_hora_envio', 'vendedor_nome', 'marcadores'])
+
+from datetime import datetime
+
+def registrar_envio_odoo(cnpj, vendedor_nome, marcadores):
+    df_envios = carregar_envios_odoo()
+    novo_envio = {
+        'cnpj_completo': cnpj,
+        'data_hora_envio': datetime.now().strftime("%Y-%m-%d %H:%M"),
+        'vendedor_nome': vendedor_nome,
+        'marcadores': ";".join(marcadores)
+    }
+    df_envios = pd.concat([df_envios, pd.DataFrame([novo_envio])], ignore_index=True)
+    df_envios.to_csv('envios_odoo.csv', index=False)
 
 # Dados auxiliares
 cod_para_nome, nome_para_cod = carregar_municipios()
@@ -170,7 +202,8 @@ selecionados = editado[editado["Selecionar"] == True]["cnpj_completo"].tolist()
 if not selecionados:
     st.info("Selecione uma ou mais empresas na tabela para ver os detalhes abaixo.")
 else:
-    for cnpj in selecionados:
+    for i, cnpj in enumerate(selecionados):
+
         empresa = df[df["cnpj_completo"] == cnpj].iloc[0]
         socios_empresa = df_socios[df_socios["cnpj_basico"] == empresa["cnpj_basico"]]
 
@@ -191,7 +224,7 @@ else:
             # Formatação da data
             data_inicio = empresa.get("data_inicio_atividade", "")
             data_inicio_formatada = f"{data_inicio[6:8]}/{data_inicio[4:6]}/{data_inicio[0:4]}" if pd.notna(data_inicio) and len(str(data_inicio)) == 8 else data_inicio
-            col1_conteudo, col2_mapa = st.columns([2,1])
+            col1_conteudo, col2_acoes = st.columns([2,1])
             with col1_conteudo:
                 # Estilo visual
                 st.markdown("""
@@ -284,105 +317,175 @@ else:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-            with col2_mapa:
-                from geopy.geocoders import Nominatim
-                from streamlit_folium import st_folium
-                import folium
-                
-                @st.cache_data(show_spinner=False)
-                def geocodificar_endereco(endereco):
-                    from geopy.geocoders import Nominatim
-                    geolocator = Nominatim(user_agent="consulta_cnpj_app")
-                    return geolocator.geocode(endereco)
+        with col2_acoes:
+            import math
 
-                endereco = f"{empresa.get('logradouro', '')}, {empresa.get('numero', '')}, {empresa.get('bairro', '')}, {empresa.get('Município', '')}, {empresa.get('uf', '')}, {empresa.get('cep', '')}"
+            # Função para limpar valores nulos ou 'nan'
+            def limpar_valor(valor):
+                if not valor or (isinstance(valor, float) and math.isnan(valor)) or str(valor).lower() == "nan":
+                    return ""
+                return str(valor)
 
-                # geolocator = Nominatim(user_agent="consulta_cnpj_app")
-                location = geocodificar_endereco(endereco)
+            # Coletar e limpar os dados
+            nome_fantasia = limpar_valor(empresa.get("nome_fantasia", ""))
+            razao_social = limpar_valor(empresa.get("razao_social", ""))
+            cidade = limpar_valor(empresa.get("Município", ""))
+            logradouro = limpar_valor(empresa.get("logradouro", ""))
+            numero = limpar_valor(empresa.get("numero", ""))
+            bairro = limpar_valor(empresa.get("bairro", ""))
+            uf = limpar_valor(empresa.get("uf", ""))
 
-                if location:
-                    # chave_mapa = f"mapa_empresa_{cnpj}"
-                    # if chave_mapa not in st.session_state:
-                    mapa = folium.Map(location=[location.latitude, location.longitude], zoom_start=11)
-                    folium.Marker(
-                        [location.latitude, location.longitude],
-                        popup=empresa.get("razao_social", "Empresa"),
-                        tooltip="Ver Local",
-                        icon=folium.Icon(icon="map-marker", prefix="fa", color="blue")
-                    ).add_to(mapa)
-                    # st.session_state[chave_mapa] = mapa
+            # Construir endereço para Google Maps
+            endereco_google = f"{logradouro}, {numero} {bairro}, {cidade} - {uf}".strip().replace(" ", "+")
+            url_maps = f"https://www.google.com/maps/search/?api=1&query={endereco_google}"
 
-                    st.markdown("📍 **Localização aproximada:**")
-                    st_folium(mapa, use_container_width=True, height=300)
-                else:
-                    st.warning("Endereço não encontrado no mapa.")
-                
-                st.markdown("### 🌐 Presença Digital")
+            # Construir pesquisa para Google
+            query_google = f"{razao_social} {nome_fantasia} {cidade}".strip().replace(" ", "+")
+            url_google = f"https://www.google.com/search?q={query_google}"
 
-                import math
+            # Construir pesquisa para Instagram
+            query_insta = f'"{nome_fantasia}" {cidade}'.strip().replace(" ", "+")
+            url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
 
-                # Função utilitária para limpar valores nulos ou 'nan'
-                def limpar_valor(valor):
-                    if not valor or (isinstance(valor, float) and math.isnan(valor)) or str(valor).lower() == "nan":
-                        return ""
-                    return str(valor)
+            # Layout de botões
+            st.markdown("### 🌐 Ações de Prospecção")
 
-                # Coleta e limpa os dados
-                # Evita usar "nan" nos links
-                nome_fantasia = empresa.get("nome_fantasia", "")
-                razao_social = empresa.get("razao_social", "")
-                cidade = empresa.get("Município", "")
-                # Remove nans explícitos
-                for var in ["nome_fantasia", "razao_social", "cidade"]:
-                    val = locals()[var]
-                    if pd.isna(val) or val == "nan":
-                        locals()[var] = ""
-                
-                # Google: combinação completa
-                query_google = f"{razao_social} {nome_fantasia} {cidade}".strip().replace(" ", "+")
-                url_google = f"https://www.google.com/search?q={query_google}"
+            st.markdown(f"""
+                <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px;">
+                    <a href="{url_maps}" target="_blank"
+                    style='text-decoration: none; background-color: #34A853; color: white; padding: 10px 20px; border-radius: 6px;
+                        font-weight: 600; font-size: 14px; display: inline-block;'>
+                        📍 Ver no Google Maps
+                    </a>
+                    <a href="{url_google}" target="_blank"
+                    style='text-decoration: none; background-color: #4285F4; color: white; padding: 10px 20px; border-radius: 6px;
+                        font-weight: 600; font-size: 14px; display: inline-block;'>
+                        🔎 Pesquisar no Google
+                    </a>
+                    <a href="{url_insta}" target="_blank"
+                    style='text-decoration: none; background-color: #833AB4; color: white; padding: 10px 20px; border-radius: 6px;
+                        font-weight: 600; font-size: 14px; display: inline-block;'>
+                        📸 Buscar no Instagram
+                    </a>
+                </div>
+                """, unsafe_allow_html=True)
+            from odoo import enviar_para_odoo
+            usuarios_odoo = {
+                'marcia@voturfid.com.br': 6,
+                'rodrigo@voturfid.com.br': 7,
+                'Edmilson Moreira': 2,
+                "Sem Vendedor Atribuído": False
+            }
+            # --- Novo expander para envio ao CRM ---
+            st.divider()
+            st.markdown("### 📤 Enviar para o Odoo CRM")
+           
+            # Selecionar o vendedor
+            usuario_selecionado = st.selectbox(
+                "👤 Atribuir a oportunidade para:",
+                list(usuarios_odoo.keys()),
+                index=0,
+                key=f"usuario_atribuicao_{empresa['cnpj_completo']}_{i}"
+            )
 
-                # Instagram: só nome fantasia e cidade
-                query_insta = f'"{nome_fantasia}" {cidade}'.strip().replace(" ", "+")
-                url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
+            # Selecionar marcadores
+            tags_selecionados = st.multiselect(
+                "🏷️ Selecione os Marcadores para essa oportunidade:",
+                options=list(mapa_marcadores.keys()),
+                key=f"marcadores_oportunidade_{empresa['cnpj_completo']}_{i}"
+            )
 
-                # Botões estilizados
-                st.markdown(f"""
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
-                        <a href='https://www.google.com/search?q=site:instagram.com+"{nome_fantasia}"+{cidade}' target='_blank'
-                        style='text-decoration: none; background-color: #833AB4; color: white; padding: 8px 16px; border-radius: 6px;
-                                font-weight: 500; font-size: 14px; display: inline-block;'>
-                        📸 Procurar no Instagram
-                        </a>
-                        <a href='https://www.google.com/search?q="{nome_fantasia}"+{razao_social}+{cidade}' target='_blank'
-                        style='text-decoration: none; background-color: #4285F4; color: white; padding: 8px 16px; border-radius: 6px;
-                                font-weight: 500; font-size: 14px; display: inline-block;'>
-                        🔎 Buscar no Google
-                        </a>
-                    </div>
-                    """, unsafe_allow_html=True)
+            df_envios = carregar_envios_odoo()
+            cnpj_ja_enviado = cnpj in df_envios['cnpj_completo'].values
 
-            # Sócios permanece igual
-            st.markdown("---")
-            st.markdown("### 👥 Sócios")
-            if not socios_empresa.empty:
-                socios_empresa = socios_empresa.copy()
-                socios_empresa["data_entrada_sociedade"] = socios_empresa["data_entrada_sociedade"].apply(lambda x: f"{x[6:8]}/{x[4:6]}/{x[0:4]}" if pd.notna(x) and len(str(x)) == 8 else x)
-                socios_empresa = socios_empresa.rename(columns={
-                    "nome_socio": "Nome",
-                    "cpf_cnpj_socio": "CPF/CNPJ",
-                    "qualificacao_socio": "Qualificação",
-                    "data_entrada_sociedade": "Entrada",
-                    "faixa_etaria": "Faixa Etária"
-                })
-                st.dataframe(socios_empresa[["Nome", "CPF/CNPJ", "Qualificação", "Entrada", "Faixa Etária"]], use_container_width=True, hide_index=True)
+            if cnpj_ja_enviado:
+                envio = df_envios[df_envios['cnpj_completo'] == cnpj].iloc[0]
+                st.warning(f"🚀 Este CNPJ já foi enviado ao Odoo em {envio['data_hora_envio']} para {envio['vendedor_nome']}.")
+                st.info(f"🏷️ Marcadores usados: {envio['marcadores']}")
             else:
-                st.markdown("🔕 Nenhum sócio cadastrado.")
+                if st.button(f"✅ Confirmar envio ao Odoo CRM", key=f"botao_envio_{empresa['cnpj_completo']}_{i}"):
+                    sucesso = enviar_para_odoo(
+                        empresa,
+                        usuarios_odoo[usuario_selecionado],
+                        tags_selecionados,
+                        mapa_marcadores
+                    )
+                    if sucesso:
+                        registrar_envio_odoo(
+                            empresa['cnpj_completo'],
+                            usuario_selecionado,
+                            tags_selecionados
+                        )
+                        st.success("Oportunidade enviada e registrada com sucesso!")
 
 # Exportação
 st.download_button("⬇️ Baixar resultados em CSV", df.to_csv(index=False).encode("utf-8"), "empresas_filtradas.csv", "text/csv")
+st.divider()
+col1_grafico, col2_heatmap = st.columns(2)
+with col1_grafico:
+    # Gráfico
+    st.markdown("### Distribuição por Município")
+    if not df.empty:
+        fig = px.histogram(df, x="Município", color_discrete_sequence=["indigo"])
+        st.plotly_chart(fig, use_container_width=True)
 
-# Gráfico
-if not df.empty:
-    fig = px.histogram(df, x="Município", title="Distribuição por Município", color_discrete_sequence=["indigo"])
-    st.plotly_chart(fig, use_container_width=True)
+from streamlit_folium import st_folium
+import folium
+from folium.plugins import HeatMap
+
+@st.cache_data
+def carregar_municipios_latlon():
+    df_latlon = pd.read_csv('municipios_ce_latlon.csv', sep=';', dtype=str)
+    df_latlon['latitude'] = df_latlon['latitude'].astype(float)
+    df_latlon['longitude'] = df_latlon['longitude'].astype(float)
+    return df_latlon
+
+@st.cache_data
+def preparar_dados_heatmap(df, df_latlon):
+    if df.empty:
+        return []
+
+    # Contar empresas por município
+    empresas_por_municipio = df['Município'].value_counts().reset_index()
+    empresas_por_municipio.columns = ['Município', 'Quantidade']
+
+    # Juntar latitude/longitude
+    mapa_empresas = empresas_por_municipio.merge(df_latlon, on='Município', how='left')
+
+    # Gerar lista de pontos
+    heat_data = [
+        [row['latitude'], row['longitude'], row['Quantidade']] 
+        for idx, row in mapa_empresas.iterrows()
+        if not pd.isna(row['latitude']) and not pd.isna(row['longitude'])
+    ]
+
+    return heat_data
+
+def criar_mapa_heatmap(heat_data):
+    # Posição inicial focada no Ceará
+    mapa = folium.Map(location=[-5.2, -39.0], zoom_start=7, control_scale=True)
+
+    if heat_data:
+        HeatMap(
+            heat_data, 
+            radius=15, 
+            blur=12, 
+            max_zoom=10,
+            min_opacity=0.4
+        ).add_to(mapa)
+
+    return mapa
+
+# --- Exibir Heatmap ---
+with col2_heatmap:
+    st.markdown("### Mapa de Calor de Empresas")
+
+    df_latlon = carregar_municipios_latlon()
+    heat_data = preparar_dados_heatmap(df, df_latlon)
+
+    if heat_data:
+        mapa = criar_mapa_heatmap(heat_data)
+        st_folium(mapa, use_container_width=True, height=600)
+    else:
+        st.warning("Nenhuma empresa encontrada para gerar o mapa.")
+

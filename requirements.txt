@@ -1,6 +1,8 @@
 streamlit
 pandas
-plotly
-geopy
+python-dotenv
+xmlrpc
 folium
-streamlit-folium>=0.11.0
+streamlit-folium
+plotly
+openpyxl
