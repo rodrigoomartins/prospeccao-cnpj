@@ -391,8 +391,12 @@ else:
             query_google = f"{razao_social} {nome_fantasia} {cidade}".strip().replace(" ", "+")
             url_google = f"https://www.google.com/search?q={query_google}"
 
-            # Construir pesquisa para Instagram
-            query_insta = f'"{nome_fantasia}" {cidade}'.strip().replace(" ", "+")
+            # Tratamento de nome fantasia vazio
+            if nome_fantasia:
+                query_insta = f'"{nome_fantasia}" {cidade}'.strip().replace(" ", "+")
+            else:
+                query_insta = f'"{razao_social}" {cidade}'.strip().replace(" ", "+")  # usa razão social como fallback
+
             url_insta = f"https://www.google.com/search?q=site:instagram.com+{query_insta}"
 
             # Layout de botões
