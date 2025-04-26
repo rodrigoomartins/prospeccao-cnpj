@@ -5,11 +5,12 @@ import streamlit_authenticator as stauth
 import os
 from dotenv import load_dotenv
 import yaml
+import copy
 
 st.set_page_config(page_title="Prospecção de Empresas de Moda", layout="wide")
 
-# Carrega do Secrets
-config = {"credentials": st.secrets["credentials"]}
+# Corrigir: fazer deep copy para não usar diretamente secrets
+config = {"credentials": copy.deepcopy(st.secrets["credentials"])}
 
 # Configura authenticator
 authenticator = stauth.Authenticate(
@@ -19,20 +20,20 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# Autenticação
+# Login
 authenticator.login("main")
 
 if st.session_state.get("authentication_status"):
     authenticator.logout("Sair", "sidebar")
     st.sidebar.success(f"Bem-vindo(a), {st.session_state.get('name')}")
-    # Aqui segue seu app
+    # Aqui seu app principal segue
 elif st.session_state.get("authentication_status") is False:
     st.error("Usuário ou senha incorretos.")
     st.stop()
 elif st.session_state.get("authentication_status") is None:
     st.warning("Por favor, preencha seu login.")
     st.stop()
-
+    
 @st.cache_data
 def carregar_municipios():
     df = pd.read_csv("F.K03200$Z.D50307MUNIC.csv", sep=";", header=None, dtype=str)

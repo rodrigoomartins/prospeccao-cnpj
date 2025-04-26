@@ -6,3 +6,4 @@ streamlit-folium
 plotly
 openpyxl
 streamlit-authenticator
+PyYAML
