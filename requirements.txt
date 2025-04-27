@@ -10,3 +10,4 @@ PyYAML
 bcrypt
 selenium
 webdriver-manager
+matplotlib
