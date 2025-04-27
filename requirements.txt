@@ -8,3 +8,5 @@ openpyxl
 streamlit-authenticator
 PyYAML
 bcrypt
+selenium
+webdriver-manager
