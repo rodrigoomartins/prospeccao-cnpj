@@ -84,42 +84,47 @@ def analisar_precos(url):
 
     precos = []
 
-    # Padrões de preços
-    padrao_preco = re.compile(r"R\$[\s]*([\d\.]+,[\d]{2})")
-
+    # 1 - Preços "R$ 99,90" (normal)
+    padrao_preco_real = re.compile(r"R\$[\s]*([\d\.]+,[\d]{2})")
     textos = soup.find_all(text=True)
-
-    # 🧹 1 - Coletar todos os preços encontrados no texto
     for texto in textos:
-        matches = padrao_preco.findall(texto)
+        matches = padrao_preco_real.findall(texto)
+        for match in matches:
+            valor = match.replace(".", "").replace(",", ".")
+            try:
+                precos.append(float(valor))
+            except:
+                continue
+
+    # 2 - Preços tipo "99,90" sem "R$"
+    padrao_preco_simples = re.compile(r"([\d\.]+,[\d]{2})")
+    for texto in textos:
+        matches = padrao_preco_simples.findall(texto)
+        for match in matches:
+            # Evita pegar número que não seja preço (ex: CEP, número de rua etc.)
+            valor = match.replace(".", "").replace(",", ".")
+            try:
+                preco = float(valor)
+                if 5 < preco < 50000:  # Limite sensato para preços
+                    precos.append(preco)
+            except:
+                continue
+
+    # 3 - Busca classes e ids típicos de preço
+    seletor_precos = soup.select('[class*="price"], [class*="valor"], [id*="price"], [id*="valor"]')
+    for tag in seletor_precos:
+        texto = tag.get_text(strip=True)
+        matches = padrao_preco_simples.findall(texto)
         for match in matches:
             valor = match.replace(".", "").replace(",", ".")
             try:
                 preco = float(valor)
-                precos.append(preco)
+                if 5 < preco < 50000:
+                    precos.append(preco)
             except:
                 continue
 
-    # 🛠 2 - Coletar preços de classes específicas
-    integers = soup.select("span[class*='currencyInteger']")
-    decimals = soup.select("span[class*='currencyFraction']")
-    if integers and decimals and len(integers) == len(decimals):
-        for inteiro, decimal in zip(integers, decimals):
-            try:
-                valor = float(f"{inteiro.get_text(strip=True)},{decimal.get_text(strip=True)}".replace(",", "."))
-                precos.append(valor)
-            except:
-                continue
-
-    # 🔍 3 - Preços em atributos tipo data-price
-    for tag in soup.find_all(attrs={"data-price": True}):
-        try:
-            valor = float(tag["data-price"])
-            precos.append(valor)
-        except:
-            continue
-
-    # 🔍 4 - Preços em meta tags tipo product:price
+    # 4 - Busca em meta tags tipo product:price
     metas = soup.find_all("meta", attrs={"property": "product:price:amount"})
     for meta in metas:
         try:
@@ -128,7 +133,7 @@ def analisar_precos(url):
         except:
             continue
 
-    # 🔍 5 - Busca em scripts type application/ld+json
+    # 5 - Busca em JSON embutido (ld+json)
     scripts = soup.find_all("script", type="application/ld+json")
     for script in scripts:
         try:
@@ -146,17 +151,9 @@ def analisar_precos(url):
         except Exception:
             continue
 
-    # 🧹 6 - Remove duplicados e valores abaixo de 5 reais
     precos = list(set([p for p in precos if p > 5]))
 
-    # 🔴 7 - Remover valores suspeitos de serem parcelas
-    precos_filtrados = []
-    for preco in precos:
-        if preco < 30:  # Valores baixos são suspeitos de ser parcela
-            continue
-        precos_filtrados.append(preco)
-
-    if not precos_filtrados:
+    if not precos:
         return {
             "quantidade_precos": 0,
             "preco_minimo": 0,
@@ -165,16 +162,16 @@ def analisar_precos(url):
             "precos": []
         }
 
-    preco_min = min(precos_filtrados)
-    preco_max = max(precos_filtrados)
-    preco_medio = sum(precos_filtrados) / len(precos_filtrados)
+    preco_min = min(precos)
+    preco_max = max(precos)
+    preco_medio = sum(precos) / len(precos)
 
     return {
-        "quantidade_precos": len(precos_filtrados),
+        "quantidade_precos": len(precos),
         "preco_minimo": round(preco_min, 2),
         "preco_maximo": round(preco_max, 2),
         "preco_medio": round(preco_medio, 2),
-        "precos": precos_filtrados
+        "precos": precos
     }
 
 def carregar_analises():
