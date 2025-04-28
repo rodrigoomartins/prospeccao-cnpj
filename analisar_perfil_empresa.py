@@ -84,10 +84,23 @@ def analisar_precos(url):
 
     precos = []
 
-    # 1 - Preços "R$ 99,90" (normal)
+    # Padrões regex
     padrao_preco_real = re.compile(r"R\$[\s]*([\d\.]+,[\d]{2})")
+    padrao_preco_simples = re.compile(r"([\d\.]+,[\d]{2})")
+
     textos = soup.find_all(text=True)
+
+    palavras_proibidas = ["x", "parcelas", "sem juros", "parcela", "vezes"]
+
+    def texto_possui_parcelamento(texto):
+        texto = texto.lower()
+        return any(palavra in texto for palavra in palavras_proibidas)
+
+    # 1 - Preços "R$ 99,90" (normal)
     for texto in textos:
+        if texto_possui_parcelamento(texto):
+            continue  # Ignora textos de parcelamento
+        
         matches = padrao_preco_real.findall(texto)
         for match in matches:
             valor = match.replace(".", "").replace(",", ".")
@@ -97,23 +110,27 @@ def analisar_precos(url):
                 continue
 
     # 2 - Preços tipo "99,90" sem "R$"
-    padrao_preco_simples = re.compile(r"([\d\.]+,[\d]{2})")
     for texto in textos:
+        if texto_possui_parcelamento(texto):
+            continue
+        
         matches = padrao_preco_simples.findall(texto)
         for match in matches:
-            # Evita pegar número que não seja preço (ex: CEP, número de rua etc.)
             valor = match.replace(".", "").replace(",", ".")
             try:
                 preco = float(valor)
-                if 5 < preco < 50000:  # Limite sensato para preços
+                if 5 < preco < 50000:
                     precos.append(preco)
             except:
                 continue
 
-    # 3 - Busca classes e ids típicos de preço
+    # 3 - Busca em classes/ids típicos
     seletor_precos = soup.select('[class*="price"], [class*="valor"], [id*="price"], [id*="valor"]')
     for tag in seletor_precos:
         texto = tag.get_text(strip=True)
+        if texto_possui_parcelamento(texto):
+            continue
+        
         matches = padrao_preco_simples.findall(texto)
         for match in matches:
             valor = match.replace(".", "").replace(",", ".")
@@ -133,7 +150,7 @@ def analisar_precos(url):
         except:
             continue
 
-    # 5 - Busca em JSON embutido (ld+json)
+    # 5 - Busca em JSON embutido
     scripts = soup.find_all("script", type="application/ld+json")
     for script in scripts:
         try:
