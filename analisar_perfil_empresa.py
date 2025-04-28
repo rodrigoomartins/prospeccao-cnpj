@@ -26,13 +26,22 @@ def iniciar_navegador():
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
+# def carregar_html(url):
+#     driver = iniciar_navegador()
+#     driver.get(url)
+#     time.sleep(3)
+#     html = driver.page_source
+#     driver.quit()
+#     return html
+
 def carregar_html(url):
-    driver = iniciar_navegador()
-    driver.get(url)
-    time.sleep(3)
-    html = driver.page_source
-    driver.quit()
-    return html
+    """Função auxiliar para fazer requisição HTTP simples."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+    }
+    response = requests.get(url, headers=headers, timeout=15)
+    response.raise_for_status()
+    return response.text
 
 def analisar_perfil_empresa(url):
     try:
@@ -61,22 +70,11 @@ def analisar_perfil_empresa(url):
         return {"perfil": "Indefinido", "termos_detectados": []}
 
 def analisar_precos(url):
-    """
-    Faz análise de preços de um site usando Selenium + BeautifulSoup, capturando múltiplos formatos modernos
-    """
-    # Configurar Selenium em modo headless
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(options=chrome_options)
-
     try:
-        driver.get(url)
-        time.sleep(5)  # aguarda carregar o site
-        html = driver.page_source
+        html = carregar_html(url)
+        soup = BeautifulSoup(html, "html.parser")
     except Exception as e:
-        driver.quit()
+        print(f"Erro ao carregar a página: {e}")
         return {
             "quantidade_precos": 0,
             "preco_minimo": 0,
@@ -85,13 +83,9 @@ def analisar_precos(url):
             "precos": []
         }
 
-    driver.quit()
-
-    soup = BeautifulSoup(html, "html.parser")
-
     precos = []
 
-    # 🧹 1 - Preços "normais" (R$ inteiro no texto)
+    # 1 - Preços simples tipo "R$ 99,90"
     padrao_preco = re.compile(r"R\$[\s]*([\d\.]+,[\d]{2})")
     textos = soup.find_all(text=True)
     for texto in textos:
@@ -103,7 +97,7 @@ def analisar_precos(url):
             except:
                 continue
 
-    # 🛠 2 - Preços quebrados (integer + decimal)
+    # 2 - Preços separados em integers e fractions
     integers = soup.select("span[class*='currencyInteger']")
     decimals = soup.select("span[class*='currencyFraction']")
     if integers and decimals and len(integers) == len(decimals):
@@ -114,7 +108,7 @@ def analisar_precos(url):
             except:
                 continue
 
-    # 🔍 3 - Busca em data-price ou atributos similares
+    # 3 - Preços em atributos data-price
     for tag in soup.find_all(attrs={"data-price": True}):
         try:
             valor = float(tag["data-price"])
@@ -122,7 +116,7 @@ def analisar_precos(url):
         except:
             continue
 
-    # 🔍 4 - Busca em meta tags tipo product:price
+    # 4 - Preços em meta tags tipo product:price
     metas = soup.find_all("meta", attrs={"property": "product:price:amount"})
     for meta in metas:
         try:
@@ -131,7 +125,7 @@ def analisar_precos(url):
         except:
             continue
 
-    # 🔍 5 - Busca em scripts tipo application/ld+json
+    # 5 - Preços em JSON embutido (application/ld+json)
     scripts = soup.find_all("script", type="application/ld+json")
     for script in scripts:
         try:
@@ -149,8 +143,8 @@ def analisar_precos(url):
         except Exception:
             continue
 
-    # 🧹 6 - Pós-processamento
-    precos = list(set([p for p in precos if p > 5]))  # remove duplicados e valores ruins
+    # Pós-processamento
+    precos = list(set([p for p in precos if p > 5]))  # remove duplicados e preços muito baixos
 
     if not precos:
         return {
