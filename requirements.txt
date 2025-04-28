@@ -11,5 +11,5 @@ bcrypt
 selenium
 webdriver-manager
 matplotlib
-bs4
 requests
+BeautifulSoup4

@@ -801,20 +801,23 @@ else:
 
                 if st.button("🔄 Reanalisar Perfil e Preços"):
                     with st.spinner("Analisando site, por favor aguarde..."):
-                        resultado_perfil = analisar_perfil_empresa(url_nova_analise)
-                        resultado_precos = analisar_precos(url_nova_analise)
+                        try:
+                            resultado_perfil = analisar_perfil_empresa(url_nova_analise)
+                            resultado_precos = analisar_precos(url_nova_analise)
 
-                        salvar_analise_comercial(
-                            cnpj=cnpj_atual,
-                            razao_social=razao_social_atual,
-                            url_site=url_nova_analise,
-                            perfil=resultado_perfil["perfil"],
-                            termos_detectados=resultado_perfil["termos_detectados"],
-                            resultado_precos=resultado_precos
-                        )
+                            salvar_analise_comercial(
+                                cnpj=cnpj_atual,
+                                razao_social=razao_social_atual,
+                                url_site=url_nova_analise,
+                                perfil=resultado_perfil["perfil"],
+                                termos_detectados=resultado_perfil["termos_detectados"],
+                                resultado_precos=resultado_precos
+                            )
 
-                        st.success("Análise atualizada!")
-                        st.rerun()
+                            st.success("Análise atualizada!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro durante a análise: {e}")
             # Exibe dados de sócios, se existirem
             # Exibe dados de sócios, se existirem
             if not socios_empresa.empty:
