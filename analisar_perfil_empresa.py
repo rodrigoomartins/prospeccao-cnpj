@@ -35,11 +35,10 @@ def iniciar_navegador():
 #     return html
 
 def carregar_html(url):
-    """Função auxiliar para fazer requisição HTTP simples."""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
     }
-    response = requests.get(url, headers=headers, timeout=15)
+    response = requests.get(url, headers=headers, timeout=20)
     response.raise_for_status()
     return response.text
 
@@ -85,11 +84,11 @@ def analisar_precos(url):
 
     precos = []
 
-    # 1 - Preços simples tipo "R$ 99,90"
-    padrao_preco = re.compile(r"R\$[\s]*([\d\.]+,[\d]{2})")
+    # 1 - Preços "R$ 99,90" (normal)
+    padrao_preco_real = re.compile(r"R\$[\s]*([\d\.]+,[\d]{2})")
     textos = soup.find_all(text=True)
     for texto in textos:
-        matches = padrao_preco.findall(texto)
+        matches = padrao_preco_real.findall(texto)
         for match in matches:
             valor = match.replace(".", "").replace(",", ".")
             try:
@@ -97,26 +96,35 @@ def analisar_precos(url):
             except:
                 continue
 
-    # 2 - Preços separados em integers e fractions
-    integers = soup.select("span[class*='currencyInteger']")
-    decimals = soup.select("span[class*='currencyFraction']")
-    if integers and decimals and len(integers) == len(decimals):
-        for inteiro, decimal in zip(integers, decimals):
+    # 2 - Preços tipo "99,90" sem "R$"
+    padrao_preco_simples = re.compile(r"([\d\.]+,[\d]{2})")
+    for texto in textos:
+        matches = padrao_preco_simples.findall(texto)
+        for match in matches:
+            # Evita pegar número que não seja preço (ex: CEP, número de rua etc.)
+            valor = match.replace(".", "").replace(",", ".")
             try:
-                valor = float(f"{inteiro.get_text(strip=True)},{decimal.get_text(strip=True)}".replace(",", "."))
-                precos.append(valor)
+                preco = float(valor)
+                if 5 < preco < 50000:  # Limite sensato para preços
+                    precos.append(preco)
             except:
                 continue
 
-    # 3 - Preços em atributos data-price
-    for tag in soup.find_all(attrs={"data-price": True}):
-        try:
-            valor = float(tag["data-price"])
-            precos.append(valor)
-        except:
-            continue
+    # 3 - Busca classes e ids típicos de preço
+    seletor_precos = soup.select('[class*="price"], [class*="valor"], [id*="price"], [id*="valor"]')
+    for tag in seletor_precos:
+        texto = tag.get_text(strip=True)
+        matches = padrao_preco_simples.findall(texto)
+        for match in matches:
+            valor = match.replace(".", "").replace(",", ".")
+            try:
+                preco = float(valor)
+                if 5 < preco < 50000:
+                    precos.append(preco)
+            except:
+                continue
 
-    # 4 - Preços em meta tags tipo product:price
+    # 4 - Busca em meta tags tipo product:price
     metas = soup.find_all("meta", attrs={"property": "product:price:amount"})
     for meta in metas:
         try:
@@ -125,7 +133,7 @@ def analisar_precos(url):
         except:
             continue
 
-    # 5 - Preços em JSON embutido (application/ld+json)
+    # 5 - Busca em JSON embutido (ld+json)
     scripts = soup.find_all("script", type="application/ld+json")
     for script in scripts:
         try:
@@ -143,8 +151,7 @@ def analisar_precos(url):
         except Exception:
             continue
 
-    # Pós-processamento
-    precos = list(set([p for p in precos if p > 5]))  # remove duplicados e preços muito baixos
+    precos = list(set([p for p in precos if p > 5]))
 
     if not precos:
         return {
